@@ -1,0 +1,38 @@
+# Jetson / JetPack 6.x (aarch64) Isaac ROS Dev Base
+FROM nvcr.io/nvidia/isaac/ros:aarch64-ros2_humble_4c0c55dddd2bbcc3e8d5f9753bee634c
+
+SHELL ["/bin/bash", "-lc"]
+
+# ---- Basic utilities you typically want for development/runtime ----
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3-colcon-common-extensions \
+    python3-rosdep \
+    git \
+    sudo \
+    && rm -rf /var/lib/apt/lists/*
+
+# ---- Create a non-root user (optional but recommended) ----
+ARG USERNAME=ros_user
+ARG USER_UID=1000
+ARG USER_GID=1000
+
+RUN groupadd --gid ${USER_GID} ${USERNAME} \
+    && useradd --uid ${USER_UID} --gid ${USER_GID} -m -s /bin/bash ${USERNAME} \
+    && echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${USERNAME} \
+    && chmod 0440 /etc/sudoers.d/${USERNAME}
+
+# Workspace location inside container
+ENV WS=/ws
+RUN mkdir -p ${WS} && chown -R ${USERNAME}:${USERNAME} ${WS}
+
+# ---- Entrypoint that sources ROS and (optionally) your overlay ----
+COPY ./entrypoint.jetson.sh /entrypoint.jetson.sh
+RUN chmod +x /entrypoint.jetson.sh
+RUN mkdir -p /home/ros_user/ros2_ws/src && chown -R ros_user:ros_user /home/ros_user/ros2_ws
+
+USER ${USERNAME}
+WORKDIR ${WS}
+
+ENTRYPOINT ["/entrypoint.jetson.sh"]
+CMD ["bash"]
+
