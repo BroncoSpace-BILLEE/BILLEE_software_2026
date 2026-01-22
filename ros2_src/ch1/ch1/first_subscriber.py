@@ -8,7 +8,7 @@ class PointsSubscriber(Node):
         super().__init__('ron_sub')
         self.msg_cnt = 0
         #creating a subscriber create_susbcription inherited from Node class
-        self.subscriber = self.create_subscription(String, '/some_points', self.callback, qos_profile_system_default)
+        self.subscriber = self.create_subscription(String, '/points', self.callback, qos_profile_system_default)
 
     def callback(self, msg:String):
         #define method that will be called when a message is received

@@ -27,7 +27,7 @@
   },
 
 
-  "postCreateCommand": "bash -lc \"grep -qxF 'source /opt/ros/humble/setup.bash' /home/ros_user/.bashrc || echo 'source /opt/ros/humble/setup.bash' >> /home/ros_user/.bashrc\"",
+  "postCreateCommand": "bash -lc \"grep -qxF 'source /opt/ros/humble/setup.bash' /home/ros_user/.bashrc || echo 'source /opt/ros/humble/setup.bash' >> /home/ros_user/.bashrc; grep -qxF 'if [ -f ~/ros2_ws/install/setup.bash ]; then source ~/ros2_ws/install/setup.bash; fi' /home/ros_user/.bashrc || echo 'if [ -f ~/ros2_ws/install/setup.bash ]; then source ~/ros2_ws/install/setup.bash; fi' >> /home/ros_user/.bashrc\"",
 
 
   "customizations": {
