@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
-xhost +local:root || true
+# Allow local root in X 
+xhost +local:root >/dev/null 2>&1 || true
 
 # Directory containing this script (docker_jetson/)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -11,13 +12,30 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 # Host workspace folder (sibling of docker_jetson/)
 HOST_WS="${REPO_ROOT}/ros2_src"
 
-docker run -it --rm \
-  --mount type=bind,source="${HOST_WS}",target=/home/ros_user/ros2_ws/src \
-  --net=host \
+CONTAINER_NAME="billee_ros"
+IMAGE="my_isaac_ros_jetson:humble"
+
+# If the container is already running, just open a new shell in it
+if docker ps --format '{{.Names}}' | grep -qx "${CONTAINER_NAME}"; then
+  exec docker exec -it "${CONTAINER_NAME}" bash
+fi
+
+# If a container with that name exists but is stopped, start it and open a shell
+if docker ps -a --format '{{.Names}}' | grep -qx "${CONTAINER_NAME}"; then
+  docker start "${CONTAINER_NAME}" >/dev/null
+  exec docker exec -it "${CONTAINER_NAME}" bash
+fi
+
+# Otherwise, create and run it
+exec docker run -it \
+  --name "${CONTAINER_NAME}" \
+  --mount "type=bind,source=${HOST_WS},target=/home/ros_user/ros2_ws/src" \
+  --network=host \
   --ipc=host \
   --runtime nvidia \
-  -e DISPLAY=$DISPLAY \
+  -e "DISPLAY=${DISPLAY}" \
   -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
   -v /tmp/argus_socket:/tmp/argus_socket \
-  my_isaac_ros_jetson:humble
+  "${IMAGE}" \
+  bash
 
