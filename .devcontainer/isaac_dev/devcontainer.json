@@ -2,18 +2,19 @@
   "name": "isaac-ros-humble-x86",
   "image": "nvcr.io/nvidia/isaac/ros:x86_64-ros2_humble_f247dd1051869171c3fc53bb35f6b907",
 
+
+  "initializeCommand": "xhost + || true",
+
   "runArgs": [
+    "--mount", "type=bind,source=${localWorkspaceFolder}/ros2_src/,target=/home/ros_user/ros2_ws/src", 
+
     "--gpus=all",
     "--net=host",
     "--ipc=host",
-	"--volume", "/tmp/.X11-unix:/tmp/.X11-unix:rw"
+	  "--volume", "/tmp/.X11-unix:/tmp/.X11-unix:rw"
   ],
 
   "workspaceFolder": "/ws",
-
-  "mounts": [
-    "type=bind,source=${localWorkspaceFolder},target=/ws"
-  ],
 
   "containerEnv": {
     "ROS_DISTRO": "humble",
