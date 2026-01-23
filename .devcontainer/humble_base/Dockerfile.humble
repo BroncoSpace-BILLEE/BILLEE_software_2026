@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     python3-vcstool \
     iproute2 \
     ros-humble-joint-state-publisher-gui \
+    ros-humble-xacro \
     && rm -rf /var/lib/apt/lists/*
     
 # create a non-root user
