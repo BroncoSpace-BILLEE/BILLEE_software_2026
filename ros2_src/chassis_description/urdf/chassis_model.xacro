@@ -1,9 +1,9 @@
 <?xml version="1.0" ?>
 <robot name="chassis_model" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-<xacro:include filename="$(find chassis_model_description)/urdf/materials.xacro" />
-<xacro:include filename="$(find chassis_model_description)/urdf/chassis_model.trans" />
-<xacro:include filename="$(find chassis_model_description)/urdf/chassis_model.gazebo" />
+<xacro:include filename="$(find chassis_description)/urdf/materials.xacro" />
+<xacro:include filename="$(find chassis_description)/urdf/chassis_model.trans" />
+<xacro:include filename="$(find chassis_description)/urdf/chassis_model.gazebo" />
 <link name="base_link">
   <inertial>
     <origin xyz="0.3026093095883329 4.957188589394069e-17 -0.00019403432456449078" rpy="0 0 0"/>
@@ -13,14 +13,14 @@
   <visual>
     <origin xyz="0 0 0" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="package://chassis_model_description/meshes/base_link.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="package://chassis_description/meshes/base_link.stl" scale="0.001 0.001 0.001"/>
     </geometry>
     <material name="silver"/>
   </visual>
   <collision>
     <origin xyz="0 0 0" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="package://chassis_model_description/meshes/base_link.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="package://chassis_description/meshes/base_link.stl" scale="0.001 0.001 0.001"/>
     </geometry>
   </collision>
 </link>
@@ -34,14 +34,14 @@
   <visual>
     <origin xyz="-0.3024 0.243025 -0.0" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="package://chassis_model_description/meshes/suspension_1_left_1.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="package://chassis_description/meshes/suspension_1_left_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
     <material name="silver"/>
   </visual>
   <collision>
     <origin xyz="-0.3024 0.243025 -0.0" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="package://chassis_model_description/meshes/suspension_1_left_1.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="package://chassis_description/meshes/suspension_1_left_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
   </collision>
 </link>
@@ -55,14 +55,14 @@
   <visual>
     <origin xyz="-0.3024 -0.243025 -0.0" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="package://chassis_model_description/meshes/suspension_1_right_1.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="package://chassis_description/meshes/suspension_1_right_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
     <material name="silver"/>
   </visual>
   <collision>
     <origin xyz="-0.3024 -0.243025 -0.0" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="package://chassis_model_description/meshes/suspension_1_right_1.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="package://chassis_description/meshes/suspension_1_right_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
   </collision>
 </link>
@@ -76,14 +76,14 @@
   <visual>
     <origin xyz="-0.6024 0.281125 0.122" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="package://chassis_model_description/meshes/suspension_2_left_1.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="package://chassis_description/meshes/suspension_2_left_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
     <material name="silver"/>
   </visual>
   <collision>
     <origin xyz="-0.6024 0.281125 0.122" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="package://chassis_model_description/meshes/suspension_2_left_1.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="package://chassis_description/meshes/suspension_2_left_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
   </collision>
 </link>
@@ -97,14 +97,14 @@
   <visual>
     <origin xyz="-0.6024 -0.281125 0.122" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="package://chassis_model_description/meshes/suspension_2_right_1.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="package://chassis_description/meshes/suspension_2_right_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
     <material name="silver"/>
   </visual>
   <collision>
     <origin xyz="-0.6024 -0.281125 0.122" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="package://chassis_model_description/meshes/suspension_2_right_1.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="package://chassis_description/meshes/suspension_2_right_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
   </collision>
 </link>
@@ -118,14 +118,14 @@
   <visual>
     <origin xyz="-0.7524 0.281125 0.244" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="package://chassis_model_description/meshes/wheel_3.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="package://chassis_description/meshes/wheel_3.stl" scale="0.001 0.001 0.001"/>
     </geometry>
     <material name="silver"/>
   </visual>
   <collision>
     <origin xyz="-0.7524 0.281125 0.244" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="package://chassis_model_description/meshes/wheel_3.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="package://chassis_description/meshes/wheel_3.stl" scale="0.001 0.001 0.001"/>
     </geometry>
   </collision>
 </link>
@@ -139,14 +139,14 @@
   <visual>
     <origin xyz="-0.3624 0.281125 0.244" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="package://chassis_model_description/meshes/wheel_2.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="package://chassis_description/meshes/wheel_2.stl" scale="0.001 0.001 0.001"/>
     </geometry>
     <material name="silver"/>
   </visual>
   <collision>
     <origin xyz="-0.3624 0.281125 0.244" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="package://chassis_model_description/meshes/wheel_2.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="package://chassis_description/meshes/wheel_2.stl" scale="0.001 0.001 0.001"/>
     </geometry>
   </collision>
 </link>
@@ -160,14 +160,14 @@
   <visual>
     <origin xyz="0.1376 0.281125 0.244" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="package://chassis_model_description/meshes/wheel_1.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="package://chassis_description/meshes/wheel_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
     <material name="silver"/>
   </visual>
   <collision>
     <origin xyz="0.1376 0.281125 0.244" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="package://chassis_model_description/meshes/wheel_1.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="package://chassis_description/meshes/wheel_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
   </collision>
 </link>
@@ -181,14 +181,14 @@
   <visual>
     <origin xyz="0.1376 -0.281125 0.244" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="package://chassis_model_description/meshes/wheel_r_1.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="package://chassis_description/meshes/wheel_r_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
     <material name="silver"/>
   </visual>
   <collision>
     <origin xyz="0.1376 -0.281125 0.244" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="package://chassis_model_description/meshes/wheel_r_1.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="package://chassis_description/meshes/wheel_r_1.stl" scale="0.001 0.001 0.001"/>
     </geometry>
   </collision>
 </link>
@@ -202,14 +202,14 @@
   <visual>
     <origin xyz="-0.3624 -0.281125 0.244" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="package://chassis_model_description/meshes/wheel_r_2.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="package://chassis_description/meshes/wheel_r_2.stl" scale="0.001 0.001 0.001"/>
     </geometry>
     <material name="silver"/>
   </visual>
   <collision>
     <origin xyz="-0.3624 -0.281125 0.244" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="package://chassis_model_description/meshes/wheel_r_2.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="package://chassis_description/meshes/wheel_r_2.stl" scale="0.001 0.001 0.001"/>
     </geometry>
   </collision>
 </link>
@@ -223,14 +223,14 @@
   <visual>
     <origin xyz="-0.7524 -0.281125 0.244" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="package://chassis_model_description/meshes/wheel_r_3.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="package://chassis_description/meshes/wheel_r_3.stl" scale="0.001 0.001 0.001"/>
     </geometry>
     <material name="silver"/>
   </visual>
   <collision>
     <origin xyz="-0.7524 -0.281125 0.244" rpy="0 0 0"/>
     <geometry>
-      <mesh filename="package://chassis_model_description/meshes/wheel_r_3.stl" scale="0.001 0.001 0.001"/>
+      <mesh filename="package://chassis_description/meshes/wheel_r_3.stl" scale="0.001 0.001 0.001"/>
     </geometry>
   </collision>
 </link>
