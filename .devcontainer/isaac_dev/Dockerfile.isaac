@@ -1,0 +1,12 @@
+FROM nvcr.io/nvidia/isaac/ros:x86_64-ros2_humble_f247dd1051869171c3fc53bb35f6b907
+
+SHELL ["/bin/bash", "-lc"]
+
+
+# Install Gazebo
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gazebo \
+    ros-humble-gazebo-ros-pkgs \
+    ros-humble-gazebo-ros2-control \
+ && rm -rf /var/lib/apt/lists/*
+

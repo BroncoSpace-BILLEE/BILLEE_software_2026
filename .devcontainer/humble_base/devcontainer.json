@@ -1,5 +1,5 @@
 {
-  "name": "ros-humble-base-x86",
+  "name": "humble_dev-x86",
   "remoteUser": "ros_user",
    "build": {
     "dockerfile": "Dockerfile.humble",
@@ -16,7 +16,7 @@
 	  "--volume", "/tmp/.X11-unix:/tmp/.X11-unix:rw"
   ],
 
-  "workspaceMount": "source=${localWorkspaceFolder}/ros2_src,target=/home/ros_user/ros2_ws/src,type=bind,consistency=cached",
+  
   "workspaceFolder": "/home/ros_user/ros2_ws",
 
   "containerEnv": {

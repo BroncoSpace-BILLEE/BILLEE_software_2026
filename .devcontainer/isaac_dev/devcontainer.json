@@ -1,29 +1,35 @@
 {
-  "name": "isaac-ros-humble-x86",
-  "image": "nvcr.io/nvidia/isaac/ros:x86_64-ros2_humble_f247dd1051869171c3fc53bb35f6b907",
+  "name": "isaac-dev-x86",
+   "build": {
+    "dockerfile": "Dockerfile.isaac",
+    "context": "../.."
+  },
 
 
   "initializeCommand": "xhost + || true",
 
   "runArgs": [
-    "--mount", "type=bind,source=${localWorkspaceFolder}/ros2_src/,target=/home/ros_user/ros2_ws/src", 
-
-    "--gpus=all",
+    "--gpus", "all",
     "--net=host",
     "--ipc=host",
-	  "--volume", "/tmp/.X11-unix:/tmp/.X11-unix:rw"
+
+    "--volume", "/tmp/.X11-unix:/tmp/.X11-unix:rw",
+
+    "--device", "/dev/dri",
+
+    "--env", "NVIDIA_VISIBLE_DEVICES=all",
+    "--env", "NVIDIA_DRIVER_CAPABILITIES=all",
+    "--env", "QT_X11_NO_MITSHM=1"
   ],
 
-  "workspaceFolder": "/ws",
+  "workspaceMount": "source=${localWorkspaceFolder}/ros2_src,target=/home/ros_user/ros2_ws/src,type=bind,consistency=cached",
+  "workspaceFolder": "/home/ros_user/ros2_ws",
 
   "containerEnv": {
     "ROS_DISTRO": "humble",
     "DISPLAY": "${localEnv:DISPLAY}"
   },
 
-  
-
-  "postCreateCommand": "bash -lc 'sudo apt-get update && rosdep update && cd /ws && rosdep install --from-paths src --ignore-src -r -y && colcon build --symlink-install'",
 
   "customizations": {
     "vscode": {
