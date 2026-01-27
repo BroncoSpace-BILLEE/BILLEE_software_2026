@@ -113,23 +113,20 @@ def generate_launch_description():
     )
 
     # --- Bridge /clock so ROS nodes use simulation time (critical for controllers / Nav2) ---
-    # Define the bridge configuration YAML content inline or load a file
-    # This ensures the remapping happens inside the node logic correctly.
-    bridge_config_file = PathJoinSubstitution([
-        FindPackageShare("chassis_bringup"),
-        "config",
-        "bridge_config.yaml"
-    ])
-
-    # 2. Update the clock_bridge node to use this file
     clock_bridge = Node(
         package="ros_gz_bridge",
         executable="parameter_bridge",
         name="clock_bridge",
         output="screen",
-        parameters=[{
-            "config_file": bridge_config_file
-        }]
+        arguments=[
+            # 1. The Topic to bridge
+            "/world/empty/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock",
+            
+            # 2. Force the remapping using explicit flags
+            "--ros-args",
+            "-r",
+            "/world/empty/clock:=/clock"
+        ]
     )
 
     # --- Spawn the robot from /robot_description into Gazebo ---

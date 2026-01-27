@@ -310,7 +310,7 @@
 <ros2_control name="ChassisSystem" type="system">
   <hardware>
     <!-- Gazebo Sim hardware interface -->
-    <plugin>ign_ros2_control/IgnitionSystem</plugin>
+    <plugin>gz_ros2_control/GazeboSimSystem</plugin>
   </hardware>
 
   <joint name="joint_wheel_r1">
@@ -352,7 +352,7 @@
 </ros2_control>
 
 <gazebo>
-  <plugin filename="ign_ros2_control-system" name="ign_ros2_control::IgnitionROS2ControlPlugin">
+  <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
     <robot_param>robot_description</robot_param>
     <robot_param_node>robot_state_publisher</robot_param_node>
     <parameters>$(arg controllers_yaml)</parameters>
