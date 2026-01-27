@@ -27,7 +27,7 @@ def generate_launch_description():
     description_pkg = LaunchConfiguration("description_pkg")
     xacro_file = LaunchConfiguration("xacro_file")
     entity_name = LaunchConfiguration("entity_name")
-
+    set_env_bridge = SetEnvironmentVariable("GZ_VERSION", "fortress")
     # Pass-through argument to ros_gz_sim's gz_sim.launch.py
     # Examples:
     #   "empty.sdf"
@@ -63,7 +63,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument("x", default_value="0.0", description="Spawn X (m)."),
         DeclareLaunchArgument("y", default_value="0.0", description="Spawn Y (m)."),
-        DeclareLaunchArgument("z", default_value="0.2", description="Spawn Z (m)."),
+        DeclareLaunchArgument("z", default_value="2", description="Spawn Z (m)."),
         DeclareLaunchArgument("yaw", default_value="0.0", description="Spawn yaw (rad)."),
     ]
     xacro_path = PathJoinSubstitution([
@@ -103,13 +103,6 @@ def generate_launch_description():
     }.items(),
     )
 
-    # Optional: help Gazebo find resources (meshes, worlds, etc.) via GZ_SIM_RESOURCE_PATH
-    # This appends your description package share directory to the resource path.
-    set_resource_path = SetEnvironmentVariable(
-        name="GZ_SIM_RESOURCE_PATH",
-        value=PathJoinSubstitution([FindPackageShare(description_pkg)]),
-    )
-
     # --- Publish TF and robot_description ---
     robot_state_publisher = Node(
         package="robot_state_publisher",
@@ -120,11 +113,23 @@ def generate_launch_description():
     )
 
     # --- Bridge /clock so ROS nodes use simulation time (critical for controllers / Nav2) ---
+    # Define the bridge configuration YAML content inline or load a file
+    # This ensures the remapping happens inside the node logic correctly.
+    bridge_config_file = PathJoinSubstitution([
+        FindPackageShare("chassis_bringup"),
+        "config",
+        "bridge_config.yaml"
+    ])
+
+    # 2. Update the clock_bridge node to use this file
     clock_bridge = Node(
         package="ros_gz_bridge",
         executable="parameter_bridge",
-        arguments=["/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock"],
+        name="clock_bridge",
         output="screen",
+        parameters=[{
+            "config_file": bridge_config_file
+        }]
     )
 
     # --- Spawn the robot from /robot_description into Gazebo ---
@@ -165,8 +170,8 @@ def generate_launch_description():
     return LaunchDescription(
         declare_args
         + set_env
+        + [set_env_bridge]
         + [
-            set_resource_path,
             gz_sim_launch,
             clock_bridge,
             robot_state_publisher,

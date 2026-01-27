@@ -1,7 +1,7 @@
 controller_manager:
   ros__parameters:
-    use_sim_time: false
-    update_rate: 1000
+    use_sim_time: true
+    update_rate: 50
 
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
@@ -11,11 +11,19 @@ controller_manager:
 
 diff_drive_controller:
   ros__parameters:
-    left_wheel_names: ["Revolute 5", "Revolute 6", "Revolute 7"]
-    right_wheel_names: ["Revolute 8", "Revolute 9", "Revolute 10"]
+    left_wheel_names:
+      - joint_wheel_l1
+      - joint_wheel_l2
+      - joint_wheel_l3
+    right_wheel_names:
+      - joint_wheel_r1
+      - joint_wheel_r2
+      - joint_wheel_r3
 
-    wheel_separation: 0.672   # track width
-    wheel_radius: 0.115 
+    use_sim_time: true
+
+    wheel_separation: 0.67   # track width
+    wheel_radius: 0.11 
 
     base_frame_id: base_link
     odom_frame_id: odom

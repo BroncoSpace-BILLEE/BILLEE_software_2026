@@ -1,5 +1,6 @@
 {
   "name": "isaac-dev-x86",
+  "remoteUser": "ros_user",
    "build": {
     "dockerfile": "Dockerfile.isaac",
     "context": "../.."

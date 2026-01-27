@@ -2,6 +2,14 @@ FROM nvcr.io/nvidia/isaac/ros:x86_64-ros2_humble_f247dd1051869171c3fc53bb35f6b90
 
 SHELL ["/bin/bash", "-lc"]
 
+# create a non-root user
+ARG USERNAME=ros_user
+ARG USER_UID=1000
+ARG USER_GID=1000
+
+
+RUN groupadd --gid ${USER_GID} ${USERNAME} \
+    && useradd --uid ${USER_UID} --gid ${USER_GID} -m -s /bin/bash ${USERNAME} 
 
 # Install Gazebo
 RUN apt-get update && apt-get install -y --no-install-recommends \

@@ -14,6 +14,13 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     iproute2 \
     ros-humble-joint-state-publisher-gui \
     ros-humble-xacro \
+    ros-humble-ros-gz \
+    ros-humble-gz-ros2-control \
+    ros-humble-ros2-controllers \
+    ros-humble-controller-manager \
+    ros-humble-gz-ros2-control \
+    ros-humble-ros2controlcli \
+    ros-humble-ros-ign-bridge \
     && rm -rf /var/lib/apt/lists/*
     
 # create a non-root user

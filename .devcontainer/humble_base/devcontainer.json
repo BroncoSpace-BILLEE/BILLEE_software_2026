@@ -17,7 +17,7 @@
 	  "--volume", "/tmp/.X11-unix:/tmp/.X11-unix:rw"
   ],
 
-  
+  "workspaceMount": "source=${localWorkspaceFolder}/ros2_src,target=/home/ros_user/ros2_ws/src,type=bind,consistency=cached",
   "workspaceFolder": "/home/ros_user/ros2_ws",
 
   "containerEnv": {
