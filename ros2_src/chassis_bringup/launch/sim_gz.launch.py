@@ -4,6 +4,7 @@ from launch_ros.parameter_descriptions import ParameterValue
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
+from launch.actions import TimerAction
 from launch_ros.substitutions import FindPackageShare
 
 import os
@@ -71,10 +72,19 @@ def generate_launch_description():
     ])
 
     # --- Build robot_description from Xacro ---
+
+    controllers_yaml = PathJoinSubstitution([
+        FindPackageShare("chassis_bringup"),
+        "config",
+        "controllers.yaml",
+    ])
+
     robot_description = ParameterValue(
-    Command(["xacro",
-                " ",
-             xacro_path]),
+    Command([
+        "xacro", " ",
+        xacro_path, " ",
+        "controllers_yaml:=", controllers_yaml
+    ]),
     value_type=str,
     )
 
@@ -104,6 +114,7 @@ def generate_launch_description():
     robot_state_publisher = Node(
         package="robot_state_publisher",
         executable="robot_state_publisher",
+        name="robot_state_publisher",
         output="screen",
         parameters=[{"robot_description": robot_description, "use_sim_time": True}],
     )
@@ -129,6 +140,28 @@ def generate_launch_description():
         ],
     )
 
+    spawn_jsb = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=["joint_state_broadcaster", "--controller-manager", "/controller_manager"],
+        output="screen",
+    )
+
+    spawn_diff = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=["diff_drive_controller", "--controller-manager", "/controller_manager"],
+        output="screen",
+    )   
+
+    spawn_controllers = TimerAction(
+        period=3.0,
+        actions=[spawn_jsb, spawn_diff],
+    )
+
+ 
+
+
     return LaunchDescription(
         declare_args
         + set_env
@@ -138,5 +171,6 @@ def generate_launch_description():
             clock_bridge,
             robot_state_publisher,
             spawn_entity,
+            spawn_controllers,
         ]
     )

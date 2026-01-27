@@ -16,6 +16,7 @@
     "--volume", "/tmp/.X11-unix:/tmp/.X11-unix:rw",
 
     "--device", "/dev/dri",
+    "--device=/dev/input",
 
     "--env", "NVIDIA_VISIBLE_DEVICES=all",
     "--env", "NVIDIA_DRIVER_CAPABILITIES=all",

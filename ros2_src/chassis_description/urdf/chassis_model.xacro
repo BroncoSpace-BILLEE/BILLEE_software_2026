@@ -2,6 +2,7 @@
 <robot name="chassis_model" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
 <xacro:include filename="$(find chassis_description)/urdf/materials.xacro" />
+<xacro:arg name="controllers_yaml" default="" />
 <!--xacro:include filename="$(find chassis_description)/urdf/chassis_model.trans" /-->
 <!--xacro:include filename="$(find chassis_description)/urdf/chassis_model.gazebo" /-->
 <link name="base_link">
@@ -354,8 +355,7 @@
   <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
     <robot_param>robot_description</robot_param>
     <robot_param_node>robot_state_publisher</robot_param_node>
-    <!-- Optional: you can point to controller YAML here, or spawn controllers from launch -->
-    <!-- <parameters>$(find chassis_bringup)/config/controllers.yaml</parameters> -->
+    <parameters>$(arg controllers_yaml)</parameters>
   </plugin>
 </gazebo>
 
