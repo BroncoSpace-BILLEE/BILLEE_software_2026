@@ -2,8 +2,8 @@
 <robot name="chassis_model" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
 <xacro:include filename="$(find chassis_description)/urdf/materials.xacro" />
-<xacro:include filename="$(find chassis_description)/urdf/chassis_model.trans" />
-<xacro:include filename="$(find chassis_description)/urdf/chassis_model.gazebo" />
+<!--xacro:include filename="$(find chassis_description)/urdf/chassis_model.trans" /-->
+<!--xacro:include filename="$(find chassis_description)/urdf/chassis_model.gazebo" /-->
 <link name="base_link">
   <inertial>
     <origin xyz="0.3026093095883329 4.957188589394069e-17 -0.00019403432456449078" rpy="0 0 0"/>
@@ -304,5 +304,60 @@
   <child link="wheel_r_3"/>
   <axis xyz="0.0 1.0 0.0"/>
 </joint>
+
+<!-- ros2_control: declare command/state interfaces for wheel joints -->
+<ros2_control name="ChassisSystem" type="system">
+  <hardware>
+    <!-- Gazebo Sim hardware interface -->
+    <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+  </hardware>
+
+  <joint name="Revolute 5">
+    <command_interface name="velocity"/>
+    <state_interface name="velocity"/>
+    <state_interface name="position"/>
+  </joint>
+
+  <joint name="Revolute 6">
+    <command_interface name="velocity"/>
+    <state_interface name="velocity"/>
+    <state_interface name="position"/>
+  </joint>
+
+  <joint name="Revolute 7">
+    <command_interface name="velocity"/>
+    <state_interface name="velocity"/>
+    <state_interface name="position"/>
+  </joint>
+
+  <joint name="Revolute 8">
+    <command_interface name="velocity"/>
+    <state_interface name="velocity"/>
+    <state_interface name="position"/>
+  </joint>
+
+  <joint name="Revolute 9">
+    <command_interface name="velocity"/>
+    <state_interface name="velocity"/>
+    <state_interface name="position"/>
+  </joint>
+
+  <joint name="Revolute 10">
+    <command_interface name="velocity"/>
+    <state_interface name="velocity"/>
+    <state_interface name="position"/>
+  </joint>
+
+</ros2_control>
+
+<gazebo>
+  <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+    <robot_param>robot_description</robot_param>
+    <robot_param_node>robot_state_publisher</robot_param_node>
+    <!-- Optional: you can point to controller YAML here, or spawn controllers from launch -->
+    <!-- <parameters>$(find chassis_bringup)/config/controllers.yaml</parameters> -->
+  </plugin>
+</gazebo>
+
 
 </robot>
