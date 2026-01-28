@@ -10,15 +10,6 @@ class manual_control(Node):
     """
     Subscribes:  /joy   (sensor_msgs/Joy)
     Publishes:   /cmd_vel (geometry_msgs/Twist)
-
-    Default Xbox mapping used by most Linux joy setups:
-      A=0, B=1, X=2, Y=3
-
-    Mapping:
-      Y -> forward
-      A -> backward
-      X -> left (positive angular.z)
-      B -> right (negative angular.z)
     """
 
     def __init__(self):
@@ -28,15 +19,9 @@ class manual_control(Node):
         self.declare_parameter("joy_topic", "/joy")
         self.declare_parameter("cmd_vel_topic", "/diff_drive_controller/cmd_vel_unstamped")
 
-        # Button indices (change if your controller reports differently)
-        self.declare_parameter("btn_a", 0)
-        self.declare_parameter("btn_b", 1)
-        self.declare_parameter("btn_x", 2)
-        self.declare_parameter("btn_y", 3)
-
         # Speeds
-        self.declare_parameter("linear_speed", 0.4)   # m/s
-        self.declare_parameter("angular_speed", 1.2)  # rad/s
+        self.declare_parameter("max_linear_speed", 0.4)   # m/s
+        self.declare_parameter("max_angular_speed", 1.2)  # rad/s
 
         # Publish behavior
         self.declare_parameter("publish_hz", 20.0)
@@ -46,13 +31,8 @@ class manual_control(Node):
         self.joy_topic = self.get_parameter("joy_topic").value
         self.cmd_vel_topic = self.get_parameter("cmd_vel_topic").value
 
-        self.btn_a = int(self.get_parameter("btn_a").value)
-        self.btn_b = int(self.get_parameter("btn_b").value)
-        self.btn_x = int(self.get_parameter("btn_x").value)
-        self.btn_y = int(self.get_parameter("btn_y").value)
-
-        self.linear_speed = float(self.get_parameter("linear_speed").value)
-        self.angular_speed = float(self.get_parameter("angular_speed").value)
+        self.max_linear_speed = float(self.get_parameter("max_linear_speed").value)
+        self.max_angular_speed = float(self.get_parameter("max_angular_speed").value)
 
         self.publish_hz = float(self.get_parameter("publish_hz").value)
         self.zero_when_idle = bool(self.get_parameter("zero_when_idle").value)
@@ -74,6 +54,7 @@ class manual_control(Node):
 
     def joy_cb(self, msg: Joy):
         self.latest_buttons = list(msg.buttons)
+        self.axes = list(msg.axes)
         self.last_joy_time = self.get_clock().now()
 
     def _btn(self, idx: int) -> bool:
@@ -96,29 +77,29 @@ class manual_control(Node):
             self.pub.publish(Twist())
             return
 
-        forward = self._btn(self.btn_y)
-        backward = self._btn(self.btn_a)
-        left = self._btn(self.btn_x)
-        right = self._btn(self.btn_b)
-
         twist = Twist()
 
-        # Linear: Y forward, A backward (if both, cancel to 0)
-        if forward and not backward:
-            twist.linear.x = self.linear_speed
-        elif backward and not forward:
-            twist.linear.x = -self.linear_speed
-        else:
-            twist.linear.x = 0.0
+        AXIS_LX = 0          # left stick left/right
+        AXIS_LY = 1          # left stick up/down (often inverted)
+        DEADZONE = 0.10
+        MAX_LIN = self.max_linear_speed    # m/s
+        MAX_ANG = self.max_angular_speed   # rad/s
 
-        # Angular: X left (+), B right (-) (if both, cancel)
-        if left and not right:
-            twist.angular.z = self.angular_speed
-        elif right and not left:
-            twist.angular.z = -self.angular_speed
-        else:
-            twist.angular.z = 0.0
 
+        lx = self.axes[AXIS_LX]
+        ly = self.axes[AXIS_LY]
+
+        # Invert Y so pushing stick up -> positive forward velocity
+        forward = -ly
+        turn = lx
+
+        #forward = apply_deadzone(forward, DEADZONE)
+        #turn = apply_deadzone(turn, DEADZONE)
+
+        twist = Twist()
+        twist.linear.x = MAX_LIN * forward
+        twist.angular.z = MAX_ANG * turn
+ 
         if (twist.linear.x == 0.0 and twist.angular.z == 0.0) and self.zero_when_idle:
             # Still publish zero to keep controllers happy / actively stop
             self.pub.publish(Twist())
