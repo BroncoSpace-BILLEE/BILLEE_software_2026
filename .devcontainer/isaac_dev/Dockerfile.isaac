@@ -2,14 +2,6 @@ FROM nvcr.io/nvidia/isaac/ros:x86_64-ros2_humble_f247dd1051869171c3fc53bb35f6b90
 
 SHELL ["/bin/bash", "-lc"]
 
-# create a non-root user
-ARG USERNAME=ros_user
-ARG USER_UID=1000
-ARG USER_GID=1000
-
-
-RUN groupadd --gid ${USER_GID} ${USERNAME} \
-    && useradd --uid ${USER_UID} --gid ${USER_GID} -m -s /bin/bash ${USERNAME} 
 
 # Install Gazebo
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -20,3 +12,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-humble-gz-ros2-control \
  && rm -rf /var/lib/apt/lists/*
 
+RUN mkdir -p /home/triton-server \
+ && chown -R 1000:1000 /home/triton-server
+
+# Add a default .bashrc with colors
+RUN if [ ! -f /home/triton-server/.bashrc ] && [ -f /etc/skel/.bashrc ]; then \
+      cp /etc/skel/.bashrc /home/triton-server/.bashrc; \
+    else \
+      touch /home/triton-server/.bashrc; \
+    fi \
+ && echo 'export PS1="\[\e[1;32m\]\u@\h\[\e[0m\]:\[\e[1;34m\]\w\[\e[0m\]\$ "' >> /home/triton-server/.bashrc \
+ && echo "alias ls='ls --color=auto'" >> /home/triton-server/.bashrc \
+ && echo "alias grep='grep --color=auto'" >> /home/triton-server/.bashrc \
+ && chown 1000:1000 /home/triton-server/.bashrc

@@ -1,6 +1,7 @@
 {
   "name": "isaac-dev-x86",
-  "remoteUser": "ros_user",
+  "remoteUser": "triton-server",
+  "containerUser": "triton-server" ,
    "build": {
     "dockerfile": "Dockerfile.isaac",
     "context": "../.."
@@ -24,8 +25,8 @@
     "--env", "QT_X11_NO_MITSHM=1"
   ],
 
-  "workspaceMount": "source=${localWorkspaceFolder}/ros2_src,target=/home/ros_user/ros2_ws/src,type=bind,consistency=cached",
-  "workspaceFolder": "/home/ros_user/ros2_ws",
+  "workspaceMount": "source=${localWorkspaceFolder}/ros2_src,target=/home/triton-server/ros2_ws/src,type=bind,consistency=cached",
+  "workspaceFolder": "/home/triton-server/ros2_ws",
 
   "containerEnv": {
     "ROS_DISTRO": "humble",
