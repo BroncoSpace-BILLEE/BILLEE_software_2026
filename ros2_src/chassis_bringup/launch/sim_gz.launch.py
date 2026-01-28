@@ -152,7 +152,10 @@ def generate_launch_description():
     spawn_diff = Node(
         package="controller_manager",
         executable="spawner",
-        arguments=["diff_drive_controller", "--controller-manager", "/controller_manager"],
+        arguments=["diff_drive_controller", 
+                   "--controller-manager", 
+                   "/controller_manager"
+                   ],
         output="screen",
     )   
 
