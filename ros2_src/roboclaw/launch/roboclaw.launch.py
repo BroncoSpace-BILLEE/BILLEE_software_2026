@@ -45,17 +45,16 @@ def generate_launch_description():
         ),
         
         Node(
-            package='simple_roboclaw',
-            executable='simple_roboclaw_joy',
-            name='simple_roboclaw_joy',
+            package='roboclaw',
+            executable='roboclaw_joy',
+            name='roboclaw_joy',
             output='screen',
             parameters=[{
-                'port': LaunchConfiguration('port'),
+                'port': LaunchConfiguration('port'), #TODO: configure in tuning software
                 'baudrate': LaunchConfiguration('baudrate'),
                 'address': 128,
-                'max_speed': 100,
-                'axis_forward': 1,
-                'axis_turn': 0,
+                'axis_left': 1,
+                'axis_right': 0,
             }]
         ),
     ])

@@ -15,6 +15,7 @@
   <depend>rclpy</depend> #TODO: possibly change to exec_depend later
   <depend>sensor_msgs</depend>
   <depend>joy</depend>
+  <depend>pyserial</depend>
 
   <export>
     <build_type>ament_cmake</build_type>
