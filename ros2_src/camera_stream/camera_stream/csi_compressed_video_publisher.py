@@ -187,14 +187,15 @@ class CSICompressedVideoPublisher(Node):
         msg = CompressedVideo()
         msg.format = self.encoding
         msg.data = payload
-        msg.header.frame_id = self.frame_id
+        msg.frame_id = self.frame_id
 
         if self.use_pts and buf.pts != Gst.CLOCK_TIME_NONE:
             t = self._stamp_from_pts(int(buf.pts))
-            msg.header.stamp.sec = int(t.nanoseconds // 1_000_000_000)
-            msg.header.stamp.nanosec = int(t.nanoseconds % 1_000_000_000)
+            msg.timestamp.sec = int(t.nanoseconds // 1_000_000_000)
+            msg.timestamp.nanosec = int(t.nanoseconds % 1_000_000_000)
         else:
-            msg.header.stamp = self.get_clock().now().to_msg()
+            msg.timestamp = self.get_clock().now().to_msg()
+            self.pub.publish(msg)
 
         self.pub.publish(msg)
         return Gst.FlowReturn.OK
