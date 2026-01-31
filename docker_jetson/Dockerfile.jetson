@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-rosdep \
     git \
     sudo \
+    ros-humble-foxglove-bridge \
     && rm -rf /var/lib/apt/lists/*
 
 # ---- Create a non-root user (optional but recommended) ----
