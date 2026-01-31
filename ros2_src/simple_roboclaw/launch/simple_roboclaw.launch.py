@@ -38,9 +38,9 @@ def generate_launch_description():
         ),
         
         Node(
-            package='roboclaw',
-            executable='roboclaw_joy',
-            name='roboclaw_joy',
+            package='simple_roboclaw',
+            executable='simple_roboclaw',
+            name='simple_roboclaw',
             output='screen',
             parameters=[{
                 'port': LaunchConfiguration('port'), #TODO: configure in tuning software
