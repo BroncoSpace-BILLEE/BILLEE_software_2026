@@ -21,17 +21,10 @@ def generate_launch_description():
         description='Serial port for RoboClaw'
     )
     
-    baudrate_arg = DeclareLaunchArgument(
-        'baudrate',
-        default_value='38400',
-        description='Baudrate for serial communication'
-    )
     
     return LaunchDescription([
         launch_joy_arg,
         port_arg,
-        baudrate_arg,
-        
         Node(
             package='joy',
             executable='joy_node',
@@ -51,7 +44,6 @@ def generate_launch_description():
             output='screen',
             parameters=[{
                 'port': LaunchConfiguration('port'), #TODO: configure in tuning software
-                'baudrate': LaunchConfiguration('baudrate'),
                 'address': 128,
                 'axis_left': 1,
                 'axis_right': 0,
