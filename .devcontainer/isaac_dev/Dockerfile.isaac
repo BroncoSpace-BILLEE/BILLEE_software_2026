@@ -2,6 +2,8 @@ FROM nvcr.io/nvidia/isaac/ros:x86_64-ros2_humble_f247dd1051869171c3fc53bb35f6b90
 
 SHELL ["/bin/bash", "-lc"]
 
+USER root
+
 
 # Install Gazebo
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -13,7 +15,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /home/triton-server \
- && chown -R 1000:1000 /home/triton-server
+ && chown -R 1000:1000 /home/triton-server \
+ && mkdir -p /home/triton-server/ros2_ws \
+ && chown -R 1000:1000 /home/triton-server/ros2_ws
 
 # Add a default .bashrc with colors
 RUN if [ ! -f /home/triton-server/.bashrc ] && [ -f /etc/skel/.bashrc ]; then \
@@ -25,3 +29,33 @@ RUN if [ ! -f /home/triton-server/.bashrc ] && [ -f /etc/skel/.bashrc ]; then \
  && echo "alias ls='ls --color=auto'" >> /home/triton-server/.bashrc \
  && echo "alias grep='grep --color=auto'" >> /home/triton-server/.bashrc \
  && chown 1000:1000 /home/triton-server/.bashrc
+
+
+# Install ZED SDK (depth camera)
+#ARG ARCH=aarch64
+ARG ARCH=x86_64
+# Copy the SDK install script
+COPY .devcontainer/isaac_dev/install-zed-${ARCH}.sh /opt/zed/install-zed.sh
+# Copy the entrypoint script to change the permissions of the ZED SDK folder
+# when the container starts to the correct location
+COPY .devcontainer/isaac_dev/zed-entrypoint.sh /usr/local/bin/scripts/entrypoint_additions/zed-entrypoint.sh
+RUN chmod +x /usr/local/bin/scripts/entrypoint_additions/zed-entrypoint.sh
+
+RUN chmod +x /opt/zed/install-zed.sh && \
+   /opt/zed/install-zed.sh
+
+RUN chmod +x /opt/zed/install-zed.sh && \
+    /opt/zed/install-zed.sh && \
+    chmod -R a+rX /usr/local/zed
+
+
+#RUN apt-get update && apt-get install -y --no-install-recommends sudo \
+    #&& rm -rf /var/lib/apt/lists/*
+
+RUN usermod -aG sudo triton-server \
+ && echo "triton-server ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/triton-server \
+ && chmod 0440 /etc/sudoers.d/triton-server
+
+USER triton-server
+
+CMD ["bash"]
