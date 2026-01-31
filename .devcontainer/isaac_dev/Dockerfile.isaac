@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-humble-controller-manager \
     ros-humble-gz-ros2-control \
     ros-humble-foxglove-bridge \
+    ros-humble-foxglove-msgs \
  && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /home/triton-server \
