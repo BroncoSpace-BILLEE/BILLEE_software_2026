@@ -30,6 +30,7 @@ fi
 exec docker run -it \
   --name "${CONTAINER_NAME}" \
   --mount "type=bind,source=${HOST_WS},target=/home/ros_user/ros2_ws/src" \
+  --device=/dev/video0 \
   --network=host \
   --ipc=host \
   --runtime nvidia \

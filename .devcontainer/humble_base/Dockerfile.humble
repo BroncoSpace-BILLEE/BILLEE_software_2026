@@ -22,6 +22,8 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     ros-humble-ros2controlcli \
     ros-humble-ros-ign-bridge \
     ros-humble-joy-linux \
+    ros-humble-foxglove-bridge \
+    ros-humble-foxglove-msgs \
     && rm -rf /var/lib/apt/lists/*
     
 # create a non-root user
