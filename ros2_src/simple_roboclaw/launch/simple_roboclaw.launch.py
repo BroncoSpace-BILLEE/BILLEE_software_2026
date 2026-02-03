@@ -26,8 +26,8 @@ def generate_launch_description():
         launch_joy_arg,
         port_arg,
         Node(
-            package='joy',
-            executable='joy_node',
+            package='joy_linux',
+            executable='joy_linux_node',
             name='joy_node',
             parameters=[{
                 'device_id': 0, #TODO: fill out
@@ -46,7 +46,7 @@ def generate_launch_description():
                 'port': LaunchConfiguration('port'), #TODO: configure in tuning software
                 'address': 128,
                 'axis_left': 1,
-                'axis_right': 0,
+                'axis_right': 3,
             }]
         ),
     ])

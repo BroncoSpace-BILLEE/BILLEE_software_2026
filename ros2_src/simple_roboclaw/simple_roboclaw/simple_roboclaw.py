@@ -80,7 +80,7 @@ class RoboClawJoy(Node):
 
         self.get_logger().info(f'left: {left_pctg}% Right: {right_pctg}% -> Left: {left_speed}% Right: {right_speed}%')
         
-        self.drive_motors(left_speed, right_speed)
+        #self.drive_motors(left_speed, right_speed)
         
     
     def drive_motors(self, left_speed:float, right_speed:float):
@@ -137,5 +137,3 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
-
-    #~/ros2_ws$ ros2 pkg create simple_roboclaw  --build-type ament_python --dependencies rclpy --node-name simple_roboclaw
