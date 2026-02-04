@@ -14,7 +14,6 @@ namespace roboclaw_driver
 
   const double PI = 3.14159265358979323846;
   const double MAX_VELOCITY_RAD_PER_SEC = 3; // Example max velocity, TODO: replace with actual value
-  double encoder_ticks_per_rev_;
 
   hardware_interface::CallbackReturn RoboClawDriver::on_init(const hardware_interface::HardwareInfo & info)
   {
@@ -28,6 +27,7 @@ namespace roboclaw_driver
     baudrate_ = std::stoi(info.hardware_parameters.at("baudrate"));
     address_ = std::stoi(info.hardware_parameters.at("address"));
     encoder_ticks_per_rev_ = std::stod(info.hardware_parameters.at("encoder_ticks_per_rev"));
+    encoder_pulses_per_revolution_ = std::stod(info.hardware_parameters.at("encoder_pulses_per_revolution"));
 
     std::string mock_param = (info.hardware_parameters.at("use_mock_hardware"));
     use_mock_hardware_ = mock_param == "1" ? true : false;
@@ -163,8 +163,8 @@ namespace roboclaw_driver
 
         // Read velocities
         auto velocities = roboclaw_->get_velocity(address_);
-        hw_velocities_[0] = static_cast<double>(velocities.first); //TODO: check if encoder velocity is in units of qpps
-        hw_velocities_[1] = static_cast<double>(velocities.second);
+        hw_velocities_[0] = static_cast<double>(pulses_per_sec_to_rad_per_sec(velocities.first)); //TODO: check if encoder velocity is in units of qpps
+        hw_velocities_[1] = static_cast<double>(pulses_per_sec_to_rad_per_sec(velocities.second));
 
       } catch (const std::exception & e) {
         RCLCPP_ERROR(rclcpp::get_logger("RoboClawDriver"), "Failed to read from RoboClaw: %s", e.what());
@@ -179,8 +179,14 @@ namespace roboclaw_driver
   {
     if(!use_mock_hardware_){
       try {
-        int left_speed = static_cast<int>(hw_velocity_commands_[0] / MAX_VELOCITY_RAD_PER_SEC);
-        int right_speed = static_cast<int>(hw_velocity_commands_[1] / MAX_VELOCITY_RAD_PER_SEC);
+        int left_speed = static_cast<int>(
+          rad_per_sec_to_pulses_per_sec(
+            hw_velocity_commands_[0] / MAX_VELOCITY_RAD_PER_SEC);
+        );
+        int right_speed = static_cast<int>(
+          rad_per_sec_to_pulses_per_sec(
+            hw_velocity_commands_[1] / MAX_VELOCITY_RAD_PER_SEC);
+        );
 
         roboclaw_->set_velocity(address_, std::make_pair(left_speed, right_speed));
 
@@ -196,6 +202,17 @@ namespace roboclaw_driver
   double encoder_ticks_to_rad(double ticks){
     return (ticks / encoder_ticks_per_rev_) * 2.0 * PI;
   }
+
+  double rad_per_sec_to_pulses_per_sec(double vel_rad_sec){
+    double revs_per_sec = vel_rad_sec / (2.0 * PI);
+    return pulses_per_sec = 4 * revs_per_sec * encoder_pulses_per_revolution_;
+  }
+
+  double pulses_per_sec_to_rad_per_sec(double pulse_per_sec){
+    double revs_per_sec = pulse_per_sec / (4 * encoder_pulses_per_revolution_);
+    return revs_per_sec * 2.0 * PI;
+  }
+
 
 } 
 

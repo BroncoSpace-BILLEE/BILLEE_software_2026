@@ -36,6 +36,8 @@ public:
   hardware_interface::return_type write(const rclcpp::Time & time, const rclcpp::Duration & period) override;
 
   double encoder_ticks_to_rad(double ticks) const;
+  double rad_per_sec_to_pulses_per_sec(double vel_rad_sec) const;
+  double pulses_per_sec_to_rad_per_sec(double pulse_per_sec) const;
 
 private:
   // Parameters
@@ -43,6 +45,7 @@ private:
   int baudrate_;
   int address_;
   double encoder_ticks_per_rev_;
+  double encoder_pulses_per_revolution_;
   bool use_mock_hardware_;
 
   // RoboClaw driver
