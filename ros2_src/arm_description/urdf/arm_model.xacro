@@ -1,8 +1,7 @@
 <?xml version="1.0" ?>
 <robot name="arm_model" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-<xacro:include filename="$(find arws:
-//localhost:8765m_description)/urdf/materials.xacro" />
+<xacro:include filename="$(find arm_description)/urdf/materials.xacro" />
 <!--xacro:include filename="$(find arm_description)/urdf/arm_model.trans" /-->
 <!--xacro:include filename="$(find arm_description)/urdf/arm_model.gazebo" /-->
 <link name="base_link">
