@@ -1,0 +1,50 @@
+{
+  "name": "humble_dev-x86",
+  "remoteUser": "ros_user",
+   "build": {
+    "dockerfile": "Dockerfile.humble",
+    "context": "../.."
+  },
+
+
+  "initializeCommand": "xhost + || true",
+
+  "runArgs": [
+    "--net=host",
+    "--ipc=host",
+    "--device=/dev/input",
+	  "--volume", "/tmp/.X11-unix:/tmp/.X11-unix:rw",
+
+    "--env", "QT_X11_NO_MITSHM=1"
+  ],
+
+  "workspaceMount": "source=${localWorkspaceFolder}/ros2_src,target=/home/ros_user/ros2_ws/src,type=bind,consistency=cached",
+  "workspaceFolder": "/home/ros_user/ros2_ws",
+
+  "containerEnv": {
+    "ROS_DISTRO": "humble",
+    "DISPLAY": "${localEnv:DISPLAY}",
+		"WAYLAND_DISPLAY": "${localEnv:WAYLAND_DISPLAY}", 
+		"XDG_RUNTIME_DIR": "${localEnv:XDG_RUNTIME_DIR}"
+  },
+
+
+  "postCreateCommand": "bash -lc \"grep -qxF 'source /opt/ros/humble/setup.bash' /home/ros_user/.bashrc || echo 'source /opt/ros/humble/setup.bash' >> /home/ros_user/.bashrc; grep -qxF 'if [ -f ~/ros2_ws/install/setup.bash ]; then source ~/ros2_ws/install/setup.bash; fi' /home/ros_user/.bashrc || echo 'if [ -f ~/ros2_ws/install/setup.bash ]; then source ~/ros2_ws/install/setup.bash; fi' >> /home/ros_user/.bashrc\"",
+
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-iot.vscode-ros",
+        "ms-python.python",
+        "twxs.cmake",
+        "ms-vscode.cpptools",
+        "redhat.vscode-yaml"
+      ],
+      "settings": {
+        "files.eol": "\n",
+        "editor.wordWrap": "on"
+      }
+    }
+  }
+}

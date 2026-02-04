@@ -1,0 +1,2 @@
+/usr/bin/ar qc liblibroboclaw.a CMakeFiles/libroboclaw.dir/src/roboclaw_driver.cpp.o CMakeFiles/libroboclaw.dir/src/TimeoutSerial.cpp.o
+/usr/bin/ranlib liblibroboclaw.a
