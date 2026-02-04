@@ -24,6 +24,8 @@ public:
   RCLCPP_SHARED_PTR_DEFINITIONS(RoboClawDriver)
 
   hardware_interface::CallbackReturn on_init(const hardware_interface::HardwareInfo & info) override;
+  hardware_interface::CallbackReturn on_activate(const rclcpp_lifecycle::State & previous_state) override;
+  hardware_interface::CallbackReturn on_deactivate(const rclcpp_lifecycle::State & previous_state) override;
 
   std::vector<hardware_interface::StateInterface> export_state_interfaces() override;
 
@@ -33,12 +35,14 @@ public:
 
   hardware_interface::return_type write(const rclcpp::Time & time, const rclcpp::Duration & period) override;
 
+  double encoder_ticks_to_rad(double ticks) const;
+
 private:
   // Parameters
   std::string port_;
   int baudrate_;
   int address_;
-
+  double encoder_ticks_per_rev_;
   bool use_mock_hardware_;
 
   // RoboClaw driver
