@@ -24,6 +24,9 @@ hardware_interface::CallbackReturn RoboClawDriver::on_init(const hardware_interf
   baudrate_ = std::stoi(info.hardware_parameters.at("baudrate"));
   address_ = std::stoi(info.hardware_parameters.at("address"));
 
+  std::string mock_param = (info.hardware_parameters.at("use_mock_hardware"));
+  use_mock_hardware_ = mock_param == "1" ? true : false;
+
   // Get joint names
   for (const auto & motor : info.joints) {
     motor_names_.push_back(motor.name);
@@ -41,11 +44,20 @@ hardware_interface::CallbackReturn RoboClawDriver::on_init(const hardware_interf
 
   // Initialize RoboClaw driver
   try {
-    roboclaw_ = std::make_unique<libroboclaw::driver>(port_, baudrate_);
+
+    if(!use_mock_hardware_) {
+      roboclaw_ = std::make_unique<libroboclaw::driver>(port_, baudrate_);
+    }
+    else
+      RCLCPP_WARN(rclcpp::get_logger("RoboClawDriver"), "Using mock hardware for RoboClaw");
+
     RCLCPP_INFO(rclcpp::get_logger("RoboClawDriver"), "Connected to RoboClaw on %s", port_.c_str());
 
     // Reset encoders
-    roboclaw_->reset_encoders(address_);
+
+    if(!use_mock_hardware_)
+      roboclaw_->reset_encoders(address_);
+
     RCLCPP_INFO(rclcpp::get_logger("RoboClawDriver"), "Reset encoders");
 
   } catch (const std::exception & e) {
@@ -84,20 +96,30 @@ std::vector<hardware_interface::CommandInterface> RoboClawDriver::export_command
 
 hardware_interface::return_type RoboClawDriver::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
 {
-  try {
-    // Read encoders
-    auto encoders = roboclaw_->get_encoders(address_);
-    hw_positions_[0] = static_cast<double>(encoders.first);
-    hw_positions_[1] = static_cast<double>(encoders.second);
 
-    // Read velocities
-    auto velocities = roboclaw_->get_velocity(address_);
-    hw_velocities_[0] = static_cast<double>(velocities.first);
-    hw_velocities_[1] = static_cast<double>(velocities.second);
+  if(use_mock_hardware_){
+    // Simulate some data for testing
+    hw_positions_[0] += hw_commands_[0] * 0.1;
+    hw_positions_[1] += hw_commands_[1] * 0.1;
+    hw_velocities_[0] = hw_commands_[0];
+    hw_velocities_[1] = hw_commands_[1];
+  }
+  else{
+    try {
+      // Read encoders
+      auto encoders = roboclaw_->get_encoders(address_);
+      hw_positions_[0] = static_cast<double>(encoders.first);
+      hw_positions_[1] = static_cast<double>(encoders.second);
 
-  } catch (const std::exception & e) {
-    RCLCPP_ERROR(rclcpp::get_logger("RoboClawDriver"), "Failed to read from RoboClaw: %s", e.what());
-    return hardware_interface::return_type::ERROR;
+      // Read velocities
+      auto velocities = roboclaw_->get_velocity(address_);
+      hw_velocities_[0] = static_cast<double>(velocities.first);
+      hw_velocities_[1] = static_cast<double>(velocities.second);
+
+    } catch (const std::exception & e) {
+      RCLCPP_ERROR(rclcpp::get_logger("RoboClawDriver"), "Failed to read from RoboClaw: %s", e.what());
+      return hardware_interface::return_type::ERROR;
+    }
   }
 
   return hardware_interface::return_type::OK;
@@ -105,16 +127,18 @@ hardware_interface::return_type RoboClawDriver::read(const rclcpp::Time & /*time
 
 hardware_interface::return_type RoboClawDriver::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
 {
-  try {
-    // Convert commands to int (assuming commands are in appropriate units)
-    int left_speed = static_cast<int>(hw_commands_[0]);
-    int right_speed = static_cast<int>(hw_commands_[1]);
+  if(!use_mock_hardware_){
+    try {
+      // Convert commands to int (assuming commands are in appropriate units)
+      int left_speed = static_cast<int>(hw_commands_[0]);
+      int right_speed = static_cast<int>(hw_commands_[1]);
 
-    roboclaw_->set_velocity(address_, std::make_pair(left_speed, right_speed));
+      roboclaw_->set_velocity(address_, std::make_pair(left_speed, right_speed));
 
-  } catch (const std::exception & e) {
-    RCLCPP_ERROR(rclcpp::get_logger("RoboClawDriver"), "Failed to write to RoboClaw: %s", e.what());
-    return hardware_interface::return_type::ERROR;
+    } catch (const std::exception & e) {
+      RCLCPP_ERROR(rclcpp::get_logger("RoboClawDriver"), "Failed to write to RoboClaw: %s", e.what());
+      return hardware_interface::return_type::ERROR;
+    }
   }
 
   return hardware_interface::return_type::OK;

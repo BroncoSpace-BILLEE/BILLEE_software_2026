@@ -39,6 +39,8 @@ private:
   int baudrate_;
   int address_;
 
+  bool use_mock_hardware_;
+
   // RoboClaw driver
   std::unique_ptr<libroboclaw::driver> roboclaw_;
 
@@ -47,7 +49,7 @@ private:
   std::vector<double> hw_velocities_;
   std::vector<double> hw_commands_;
 
-  // Motor names
+  // Joint names
   std::vector<std::string> motor_names_;
 };
 
