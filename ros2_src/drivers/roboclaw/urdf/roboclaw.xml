@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<robot name="minimal_robot">
+  <ros2_control name="MyHardware" type="system">
+    <hardware>
+      <plugin>roboclaw/roboclaw</plugin>
+      <param name="some_param">value</param>
+    </hardware>
+    <joint name="joint1">
+      <command_interface name="position" />
+      <state_interface name="position" />
+    </joint>
+  </ros2_control>
+</robot>

@@ -1,0 +1,65 @@
+#ifndef ROBOCLAW_DRIVER_HPP_
+#define ROBOCLAW_DRIVER_HPP_
+
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "hardware_interface/system_interface.hpp"
+#include "hardware_interface/handle.hpp"
+#include "hardware_interface/hardware_info.hpp"
+#include "hardware_interface/types/hardware_interface_return_values.hpp"
+#include "rclcpp/macros.hpp"
+#include "rclcpp_lifecycle/node_interfaces/lifecycle_node_interface.hpp"
+#include "rclcpp_lifecycle/state.hpp"
+
+#include "libroboclaw/roboclaw_driver.h"
+
+namespace roboclaw_driver
+{
+
+class RoboClawDriver : public hardware_interface::SystemInterface
+{
+public:
+  RCLCPP_SHARED_PTR_DEFINITIONS(RoboClawDriver)
+
+  hardware_interface::CallbackReturn on_init(const hardware_interface::HardwareInfo & info) override;
+  hardware_interface::CallbackReturn on_activate(const rclcpp_lifecycle::State & previous_state) override;
+  hardware_interface::CallbackReturn on_deactivate(const rclcpp_lifecycle::State & previous_state) override;
+
+  std::vector<hardware_interface::StateInterface> export_state_interfaces() override;
+
+  std::vector<hardware_interface::CommandInterface> export_command_interfaces() override;
+
+  hardware_interface::return_type read(const rclcpp::Time & time, const rclcpp::Duration & period) override;
+
+  hardware_interface::return_type write(const rclcpp::Time & time, const rclcpp::Duration & period) override;
+
+  double encoder_ticks_to_rad(double ticks) const;
+  double rad_per_sec_to_pulses_per_sec(double vel_rad_sec) const;
+  double pulses_per_sec_to_rad_per_sec(double pulse_per_sec) const;
+
+private:
+  // Parameters
+  std::string port_;
+  int baudrate_;
+  int address_;
+  double encoder_ticks_per_rev_;
+  double encoder_pulses_per_revolution_;
+  bool use_mock_hardware_;
+
+  // RoboClaw driver
+  std::unique_ptr<libroboclaw::driver> roboclaw_;
+
+  // State and command data
+  std::vector<double> hw_positions_;
+  std::vector<double> hw_velocities_;
+  std::vector<double> hw_commands_;
+
+  // Joint names
+  std::vector<std::string> motor_names_;
+};
+
+}  // namespace roboclaw_driver
+
+#endif  // ROBOCLAW_DRIVER_HPP_
