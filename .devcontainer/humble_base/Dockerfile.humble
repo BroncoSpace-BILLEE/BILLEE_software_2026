@@ -25,6 +25,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     ros-humble-foxglove-bridge \
     ros-humble-foxglove-msgs \
     ros-humble-moveit \
+    ros-humble-moveit-servo \
     && rm -rf /var/lib/apt/lists/*
     
 # create a non-root user
