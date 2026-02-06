@@ -1,6 +1,5 @@
 {
   "name": "humble_dev-x86",
-  "remoteUser": "ros_user",
    "build": {
     "dockerfile": "Dockerfile.humble",
     "context": "../.."
@@ -14,11 +13,28 @@
     "--net=host",
     "--ipc=host",
     "--device=/dev/input",
+    "--device=/dev/bus/usb:/dev/bus/usb", //include zed2 device
+    "--device=/dev/hidraw0:/dev/hidraw0", //include zed2  HID
+    "--device=/dev/hidraw1:/dev/hidraw1", //include zed2 HID
+    "--device=/dev/hidraw2:/dev/hidraw2", //include zed2 HID
+    //"--device=/dev/hidraw4:/dev/hidraw4", //include zed2 HID
+    //"--device=/dev/hidraw5:/dev/hidraw5", //include zed2 HID
+    //"--device=/dev/hidraw6:/dev/hidraw6", //include zed2 HID
+    //"--device=/dev/hidraw7:/dev/hidraw7", //include zed2 HID
+    "--device=/dev/video0:/dev/video0", //include zed2 HID
+    "--device=/dev/video1:/dev/video1", //include zed2 HID
+    "--device=/dev/video2:/dev/video2", //include zed2 HID
+    "--device=/dev/video3:/dev/video3", //include zed2 HID
+    //"--device=/dev/hidraw8", //include zed2 HID
+    "--device=/dev/dri",
 	  "--volume", "/tmp/.X11-unix:/tmp/.X11-unix:rw",
 
     "--env", "NVIDIA_VISIBLE_DEVICES=all",
     "--env", "NVIDIA_DRIVER_CAPABILITIES=all",
-    "--env", "QT_X11_NO_MITSHM=1"
+    "--env", "QT_X11_NO_MITSHM=1",
+    "--env", "__GLX_VENDOR_LIBRARY_NAME=nvidia",
+    "--env", "__NV_PRIME_RENDER_OFFLOAD=1",
+    "--env", "__VK_LAYER_NV_optimus=NVIDIA_only"
   ],
 
   "workspaceMount": "source=${localWorkspaceFolder}/ros2_src,target=/home/ros_user/ros2_ws/src,type=bind,consistency=cached",

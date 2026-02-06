@@ -143,3 +143,13 @@ The container comes with pre-installed VS Code extensions and custom settings:
 - For more information on `devcontainer.json`, visit the [official documentation](https://aka.ms/vscode-remote/devcontainer.json).
 - Ensure any required dependencies (e.g., X11 server, Docker privileges) are configured correctly on your host.
 
+
+# Driver Issues
+
+- sometimes the nvidia drivers on ubuntu stop working so make sure to run `nvidia-smi` to make sure your drivers are being detected.
+  - if this is not working, go to software and updates and make sure the `nvidia-580` drivers are being detected
+
+  ## Zed2 is not being detected
+
+  - this is likely an NVEC issue that is related to the driver issue 
+  - run `nvidia-smi -q | grep -i encoder` to check
