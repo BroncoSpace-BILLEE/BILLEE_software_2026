@@ -79,7 +79,7 @@ namespace roboclaw_driver
     RCLCPP_INFO(rclcpp::get_logger("RoboClawDriver"), "Activating RoboClaw driver");
 
     for (size_t i = 0; i < motor_names_.size(); ++i) {
-      hw_velocities_commands_[i] = hw_velocities_[i] = 0.0;
+      hw_velocity_commands_[i] = hw_velocities_[i] = 0.0;
 
       if(use_mock_hardware_)
         hw_position_commands_[i] = hw_positions_[i] = 0.0;
@@ -133,12 +133,12 @@ namespace roboclaw_driver
     return command_interfaces;
   }
 
-  hardware_interface::return_type RoboClawDriver::read(const rclcpp::Time &,  const rclcpp::Duration &)
+  hardware_interface::return_type RoboClawDriver::read(const rclcpp::Time &,  const rclcpp::Duration & period)
   {
 
     if(use_mock_hardware_){
 
-      for(int i = 0; i < motor_names_.size(); i++){
+      for(size_t i = 0; i < motor_names_.size(); i++){
         if(std::isnan(hw_velocity_commands_[i])){
           RCLCPP_WARN(rclcpp::get_logger("RoboClawDriver"), "velocity is flagged as NaN for motors %s", motor_names_[i].c_str());
           hw_velocity_commands_[i] = 0.0;
@@ -147,7 +147,7 @@ namespace roboclaw_driver
         else{
           //simple P controller in sim...
           double dt = period.seconds();
-          double ds = hw_position_commands_[i] - hardware_positions_[i];
+          double ds = hw_position_commands_[i] - hw_positions_[i];
 
           hw_velocities_[i] = ds/dt;
           hw_positions_[i] += ds;
@@ -181,11 +181,11 @@ namespace roboclaw_driver
       try {
         int left_speed = static_cast<int>(
           rad_per_sec_to_pulses_per_sec(
-            hw_velocity_commands_[0] / MAX_VELOCITY_RAD_PER_SEC);
+            hw_velocity_commands_[0] / MAX_VELOCITY_RAD_PER_SEC)
         );
         int right_speed = static_cast<int>(
           rad_per_sec_to_pulses_per_sec(
-            hw_velocity_commands_[1] / MAX_VELOCITY_RAD_PER_SEC);
+            hw_velocity_commands_[1] / MAX_VELOCITY_RAD_PER_SEC)
         );
 
         roboclaw_->set_velocity(address_, std::make_pair(left_speed, right_speed));
@@ -199,16 +199,16 @@ namespace roboclaw_driver
     return hardware_interface::return_type::OK;
   }
 
-  double encoder_ticks_to_rad(double ticks){
+  double RoboClawDriver::encoder_ticks_to_rad(double ticks) const{
     return (ticks / encoder_ticks_per_rev_) * 2.0 * PI;
   }
 
-  double rad_per_sec_to_pulses_per_sec(double vel_rad_sec){
+  double RoboClawDriver::rad_per_sec_to_pulses_per_sec(double vel_rad_sec) const{
     double revs_per_sec = vel_rad_sec / (2.0 * PI);
-    return pulses_per_sec = 4 * revs_per_sec * encoder_pulses_per_revolution_;
+    return 4 * revs_per_sec * encoder_pulses_per_revolution_;
   }
 
-  double pulses_per_sec_to_rad_per_sec(double pulse_per_sec){
+  double RoboClawDriver::pulses_per_sec_to_rad_per_sec(double pulse_per_sec) const{
     double revs_per_sec = pulse_per_sec / (4 * encoder_pulses_per_revolution_);
     return revs_per_sec * 2.0 * PI;
   }
