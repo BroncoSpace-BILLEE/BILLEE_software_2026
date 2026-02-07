@@ -108,11 +108,11 @@ def generate_launch_description():
         PythonLaunchDescriptionSource([arm_moveit_share, "/launch/move_group.launch.py",])
     )
 
-    servo = IncludeLaunchDescription(
-    PythonLaunchDescriptionSource([arm_moveit_share, "/launch/servo.launch.py"])
-    )
+    #servo = IncludeLaunchDescription(
+    #PythonLaunchDescriptionSource([arm_moveit_share, "/launch/servo.launch.py"])
+    #)
 
-    start_servo = TimerAction(period=5.0, actions=[servo])
+    #start_servo = TimerAction(period=5.0, actions=[servo])
     
     moveit_rviz = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([arm_moveit_share, "/launch/moveit_rviz.launch.py"])
@@ -269,7 +269,7 @@ def generate_launch_description():
         spawn_arm,
         spawn_gripper,
         move_group,
-        start_servo,
+        #start_servo,
         moveit_rviz,
     ]
 

@@ -73,19 +73,19 @@ class JoyToServoTwist(Node):
         self.declare_parameter("axis_yaw", 2)       # left trigger (or use a stick)
 
         # If you want Z from two triggers, enable this:
-        self.declare_parameter("use_dual_triggers_for_z", True)
+        self.declare_parameter("use_dual_triggers_for_z", False)
         self.declare_parameter("axis_z_up_trigger", 5)    # RT
         self.declare_parameter("axis_z_down_trigger", 2)  # LT
         self.declare_parameter("triggers_are_0_to_1", False)
         # Some controllers report triggers in [-1..1] with -1 unpressed; set accordingly.
 
         # Scales (max speeds)
-        self.declare_parameter("linear_scale", 0.15)   # m/s at full deflection
-        self.declare_parameter("angular_scale", 0.6)   # rad/s at full deflection
+        self.declare_parameter("linear_scale", 1)   # m/s at full deflection
+        self.declare_parameter("angular_scale", 1)   # rad/s at full deflection
 
         # Deadband + clamp
         self.declare_parameter("deadband", 0.08)
-        self.declare_parameter("max_linear", 0.25)     # m/s clamp
+        self.declare_parameter("max_linear", 1)     # m/s clamp
         self.declare_parameter("max_angular", 1.2)     # rad/s clamp
 
         # Enable / hold-to-command

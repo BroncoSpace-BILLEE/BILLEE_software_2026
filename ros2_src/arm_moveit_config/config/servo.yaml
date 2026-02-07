@@ -1,6 +1,5 @@
-servo_node:
+moveit_servo:
   ros__parameters:
-    use_gazebo: true
     use_sim_time: true
 
     # MoveIt info
@@ -15,6 +14,9 @@ servo_node:
 
     # Output / execution
     command_out_type: "trajectory_msgs/JointTrajectory"
+    command_out_topic: "/servo_node/servo_command"
+    publish_command_out: true
     publish_joint_positions: true
     publish_joint_velocities: false
     publish_joint_accelerations: false
+    status_topic: "/servo_node/status"
