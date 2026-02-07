@@ -35,9 +35,7 @@
 		"XDG_RUNTIME_DIR": "${localEnv:XDG_RUNTIME_DIR}"
   },
 
-
-  "postCreateCommand": "bash -lc \"grep -qxF 'source /opt/ros/humble/setup.bash' /home/ros_user/.bashrc || echo 'source /opt/ros/humble/setup.bash' >> /home/ros_user/.bashrc; grep -qxF 'if [ -f ~/ros2_ws/install/setup.bash ]; then source ~/ros2_ws/install/setup.bash; fi' /home/ros_user/.bashrc || echo 'if [ -f ~/ros2_ws/install/setup.bash ]; then source ~/ros2_ws/install/setup.bash; fi' >> /home/ros_user/.bashrc\"",
-
+  "postStartCommand": "bash -c 'source /opt/ros/${ROS_DISTRO}/setup.bash && colcon build --symlink-install --parallel-workers $(nproc)'",
 
   "customizations": {
     "vscode": {
