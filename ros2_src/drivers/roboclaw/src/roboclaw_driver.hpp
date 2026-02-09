@@ -54,7 +54,8 @@ private:
   // State and command data
   std::vector<double> hw_positions_;
   std::vector<double> hw_velocities_;
-  std::vector<double> hw_commands_;
+  std::vector<double> hw_velocity_commands_;
+  std::vector<double> hw_position_commands_;
 
   // Joint names
   std::vector<std::string> motor_names_;
