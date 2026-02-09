@@ -10,20 +10,6 @@ Maps gamepad axes to end-effector Cartesian velocity commands:
 - angular: roll, pitch, yaw (rad/s)
 
 Intended to drive MoveIt Servo in ROS 2 Humble.
-
-Typical MoveIt Servo expects:
-  - geometry_msgs/TwistStamped on /servo_node/delta_twist_cmds
-  - header.frame_id set to a command frame (often base_link)
-
-Usage:
-  ros2 run <your_pkg> joy_to_servo_twist --ros-args \
-    -p cmd_frame:=base_link \
-    -p publish_topic:=/servo_node/delta_twist_cmds
-
-You must run:
-  - joy_node (or equivalent)
-  - move_group + moveit_servo
-  - ros2_control controllers active (arm_controller)
 """
 
 from __future__ import annotations
@@ -37,7 +23,7 @@ from rclpy.duration import Duration
 
 from sensor_msgs.msg import Joy
 from geometry_msgs.msg import TwistStamped
-
+from std_msgs.msg import Float64MultiArray
 
 def _clamp(x: float, lo: float, hi: float) -> float:
     return max(lo, min(hi, x))
@@ -54,48 +40,41 @@ class JoyToServoTwist(Node):
         # ---- Parameters ----
         # Topics
         self.declare_parameter("joy_topic", "/joy")
-        self.declare_parameter("publish_topic", "/servo_node/delta_twist_cmds")
+        self.declare_parameter("servo_pub_topic", "/servo_node/delta_twist_cmds")
+        self.declare_parameter("wrist_pub_topic", "/wrist_controller/commands") #topic for the wrist joint controller
 
         # Frame
-        self.declare_parameter("cmd_frame", "base_link")
+        self.declare_parameter("cmd_frame", "link_1_2_1")  # frame for the TwistStamped commands (should be a robot link)
 
         # Publish rate + timeout
         self.declare_parameter("publish_hz", 50.0)
         self.declare_parameter("joy_timeout_sec", 0.25)
 
-        # Axis mapping (indices in Joy.axes)
-        # Defaults are Xbox-ish; adjust to your controller.
-        self.declare_parameter("axis_x", 0)         # left stick left/right
-        self.declare_parameter("axis_y", 1)         # left stick up/down
-        self.declare_parameter("axis_z", 5)         # right trigger (or use 2); see below
-        self.declare_parameter("axis_roll", 3)      # right stick left/right
-        self.declare_parameter("axis_pitch", 4)     # right stick up/down
-        self.declare_parameter("axis_yaw", 2)       # left trigger (or use a stick)
-
-        # If you want Z from two triggers, enable this:
-        self.declare_parameter("use_dual_triggers_for_z", False)
-        self.declare_parameter("axis_z_up_trigger", 5)    # RT
-        self.declare_parameter("axis_z_down_trigger", 2)  # LT
-        self.declare_parameter("triggers_are_0_to_1", False)
-        # Some controllers report triggers in [-1..1] with -1 unpressed; set accordingly.
-
-        # Scales (max speeds)
-        self.declare_parameter("linear_scale", 1)   # m/s at full deflection
-        self.declare_parameter("angular_scale", 1)   # rad/s at full deflection
-
-        # Deadband + clamp
-        self.declare_parameter("deadband", 0.08)
-        self.declare_parameter("max_linear", 1)     # m/s clamp
-        self.declare_parameter("max_angular", 1.2)     # rad/s clamp
-
-        # Enable / hold-to-command
-        # If enable_button < 0, always enabled.
-        self.declare_parameter("enable_button", -1)    # e.g. RB=5 on Xbox
-        self.declare_parameter("require_enable", False)
-
-        # Optional: invert axes
-        self.declare_parameter("invert_y", True)       # many sticks report up as +1 or -1; invert if needed
-        self.declare_parameter("invert_pitch", True)
+        # this sets the max rates allowed by servo, not actual arm limits (set in controllers.yaml)
+        self.declare_parameter("max_linear", 1.0)
+        self.declare_parameter("max_angular", 1.0)
+        #controller mappings
+        #axes
+        self.thumb_left_x_axis = 0
+        self.thumb_left_y_axis = 1
+        self.thumb_right_x_axis = 3
+        self.thumb_right_y_axis = 4
+        self.left_trigger_axis = 2
+        self.right_trigger_axis = 5
+        self.directional_x_axis = 6
+        self.directional_y_axis = 7
+        #buttons
+        self.button_a = 0
+        self.button_b = 1
+        self.button_x = 2
+        self.button_y = 3
+        self.button_lb = 4
+        self.button_rb = 5
+        self.button_share = 6
+        self.button_options = 7
+        self.button_xbox = 8
+        self.button_left_stick = 9
+        self.button_right_stick = 10
 
         # ---- State ----
         self._latest_axes: List[float] = []
@@ -104,16 +83,24 @@ class JoyToServoTwist(Node):
 
         # ---- ROS I/O ----
         joy_topic = self.get_parameter("joy_topic").get_parameter_value().string_value
-        pub_topic = self.get_parameter("publish_topic").get_parameter_value().string_value
+        # topic for the servo controller
+        servo_pub_topic = self.get_parameter("servo_pub_topic").get_parameter_value().string_value
+
+        #topic for the joint controller 
+        wrist_pub_topic = self.get_parameter("wrist_pub_topic").get_parameter_value().string_value
+
+
 
         self._sub = self.create_subscription(Joy, joy_topic, self._on_joy, 10)
-        self._pub = self.create_publisher(TwistStamped, pub_topic, 10)
+        self._servo_pub = self.create_publisher(TwistStamped, servo_pub_topic, 10)
+        
+        self._wrist_pub = self.create_publisher(Float64MultiArray, wrist_pub_topic, 10)
 
         hz = float(self.get_parameter("publish_hz").value)
         self._timer = self.create_timer(1.0 / max(hz, 1.0), self._on_timer)
 
         self.get_logger().info(
-            f"JoyToServoTwist: joy_topic={joy_topic}, publish_topic={pub_topic}, cmd_frame={self.get_parameter('cmd_frame').value}"
+            f"JoyToServoTwist: joy_topic={joy_topic}, servo_pub_topic={servo_pub_topic}, cmd_frame={self.get_parameter('cmd_frame').value}"
         )
 
     def _on_joy(self, msg: Joy) -> None:
@@ -135,87 +122,60 @@ class JoyToServoTwist(Node):
             return 0.0
         return float(self._latest_axes[idx])
 
-    def _compute_z_from_triggers(self) -> float:
-        # Returns z command in [-1..1] where + is up
-        up_idx = int(self.get_parameter("axis_z_up_trigger").value)
-        dn_idx = int(self.get_parameter("axis_z_down_trigger").value)
-        t_up = self._axis(up_idx)
-        t_dn = self._axis(dn_idx)
-
-        triggers_0_to_1 = bool(self.get_parameter("triggers_are_0_to_1").value)
-        if triggers_0_to_1:
-            # already [0..1]
-            up = _clamp(t_up, 0.0, 1.0)
-            dn = _clamp(t_dn, 0.0, 1.0)
-        else:
-            # common: [-1..1] with -1 unpressed, +1 fully pressed
-            up = (t_up + 1.0) * 0.5
-            dn = (t_dn + 1.0) * 0.5
-            up = _clamp(up, 0.0, 1.0)
-            dn = _clamp(dn, 0.0, 1.0)
-
-        return up - dn  # + up, - down
+    def _remap(self, value, old_min, old_max, new_min, new_max):
+        """
+        Remaps a value from an old range to a new range.
+        """
+        # Ensure all values are floats for division
+        old_range = float(old_max - old_min)
+        new_range = float(new_max - new_min)
+        
+        # Calculate the normalized position (0 to 1) in the old range
+        normalized_value = (value - old_min) / old_range
+        
+        # Scale to the new range and add the new minimum
+        remapped_value = normalized_value * new_range + new_min
+        
+        return remapped_value
 
     def _on_timer(self) -> None:
         # If we haven't received joy recently, publish zeros (or stop publishing; Servo typically likes zeros).
         timeout = float(self.get_parameter("joy_timeout_sec").value)
         if (self.get_clock().now() - self._last_joy_time) > Duration(seconds=timeout):
-            self._publish_zero()
+            self._servo_publish_zero()
             return
 
-        require_enable = bool(self.get_parameter("require_enable").value)
-        enable_button = int(self.get_parameter("enable_button").value)
-        enabled = (not require_enable) or self._btn(enable_button)
-
-        if not enabled:
-            self._publish_zero()
-            return
-
-        db = float(self.get_parameter("deadband").value)
-        lin_scale = float(self.get_parameter("linear_scale").value)
-        ang_scale = float(self.get_parameter("angular_scale").value)
         max_lin = float(self.get_parameter("max_linear").value)
         max_ang = float(self.get_parameter("max_angular").value)
 
-        invert_y = bool(self.get_parameter("invert_y").value)
-        invert_pitch = bool(self.get_parameter("invert_pitch").value)
+        #translations
+        #xy plane translations with left thumbstick
+        vx = self._remap(self._axis(self.thumb_left_y_axis), -1, 1, max_lin, -max_lin)  # forward/back
+        #vy = self._remap(self._axis(self.thumb_left_x_axis), -1, 1, -max_lin, max_lin)  # left/right
+        vy = 0.0 #no strafing as the arm doesn't have that DOF
 
-        # Linear
-        ax_x = int(self.get_parameter("axis_x").value)
-        ax_y = int(self.get_parameter("axis_y").value)
-        ax_z = int(self.get_parameter("axis_z").value)
+        #z translation with triggers (LT down, RT up)
+        lt = self._axis(self.left_trigger_axis)  #  -1 (released) to 1 (fully pressed)
+        rt = self._axis(self.right_trigger_axis)
 
-        x = _deadband(self._axis(ax_x), db)
-        y = _deadband(self._axis(ax_y), db)
-        if invert_y:
-            y = -y
-
-        use_dual = bool(self.get_parameter("use_dual_triggers_for_z").value)
-        if use_dual:
-            z = _deadband(self._compute_z_from_triggers(), db)
+        if lt != 1:  # if LT is pressed
+            vz = self._remap(lt, 1, -1, 0, -max_lin)  # map to 0 (released) to -max_lin (fully pressed)
+        elif rt != 1:  # if RT is pressed
+            vz = self._remap(rt, 1, -1, 0, max_lin)   # map to 0 (released) to max_lin (fully pressed)
+        elif lt == 0.0 and rt == 0.0:  # if both triggers aren't intialized
+            vz = 0.0
         else:
-            z = _deadband(self._axis(ax_z), db)
+            vz = 0.0
 
-        # Angular
-        ax_r = int(self.get_parameter("axis_roll").value)
-        ax_p = int(self.get_parameter("axis_pitch").value)
-        ax_yaw = int(self.get_parameter("axis_yaw").value)
+        #rotations
+        wz = self._remap(self._axis(self.thumb_left_x_axis), -1, 1, -max_ang, max_ang)
+        
+        wx = self._remap(self._axis(self.thumb_right_x_axis), -1, 1, -max_ang, max_ang) 
 
-        roll = _deadband(self._axis(ax_r), db)
-        pitch = _deadband(self._axis(ax_p), db)
-        yaw = _deadband(self._axis(ax_yaw), db)
+        #rotate wrist up down with right thumbstick y axis
+        wy = self._remap(self._axis(self.thumb_right_y_axis), -1, 1, -max_ang, max_ang)
+        
 
-        if invert_pitch:
-            pitch = -pitch
-
-        # Scale to velocities
-        vx = _clamp(x * lin_scale, -max_lin, max_lin)
-        vy = _clamp(y * lin_scale, -max_lin, max_lin)
-        vz = _clamp(z * lin_scale, -max_lin, max_lin)
-
-        wx = _clamp(roll * ang_scale, -max_ang, max_ang)
-        wy = _clamp(pitch * ang_scale, -max_ang, max_ang)
-        wz = _clamp(yaw * ang_scale, -max_ang, max_ang)
 
         msg = TwistStamped()
         msg.header.stamp = self.get_clock().now().to_msg()
@@ -228,14 +188,20 @@ class JoyToServoTwist(Node):
         msg.twist.angular.y = float(wy)
         msg.twist.angular.z = float(wz)
 
-        self._pub.publish(msg)
+        self._servo_pub.publish(msg)
 
-    def _publish_zero(self) -> None:
+        msg_wrist = Float64MultiArray()
+        msg_wrist.data = [wx]  # Assuming the wrist controller expects a single float
+
+        self._wrist_pub.publish(msg_wrist)
+
+
+    def _servo_publish_zero(self) -> None:
         msg = TwistStamped()
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.header.frame_id = str(self.get_parameter("cmd_frame").value)
         # all zeros
-        self._pub.publish(msg)
+        self._servo_pub.publish(msg)
 
 
 def main() -> None:

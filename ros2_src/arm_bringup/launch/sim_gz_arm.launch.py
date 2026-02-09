@@ -229,13 +229,24 @@ def generate_launch_description():
         "--controller-manager-timeout", "60",
     ],
     output="screen",
-)
+    )
 
     spawn_arm = Node(
         package="controller_manager",
         executable="spawner",
         arguments=[
-            "arm_controller",
+            "arm_no_wrist_controller",
+            "--controller-manager", "/controller_manager",
+            "--controller-manager-timeout", "60",
+        ],
+        output="screen",
+    )
+
+    spawn_wrist = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=[
+            "wrist_controller",
             "--controller-manager", "/controller_manager",
             "--controller-manager-timeout", "60",
         ],
@@ -267,6 +278,7 @@ def generate_launch_description():
         spawn_entity,
         spawn_jsb,
         spawn_arm,
+        spawn_wrist,
         spawn_gripper,
         move_group,
         #start_servo,

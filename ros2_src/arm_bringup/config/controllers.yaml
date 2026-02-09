@@ -4,22 +4,24 @@ controller_manager:
 
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
-
-    arm_controller:
+    
+    arm_no_wrist_controller:
       type: joint_trajectory_controller/JointTrajectoryController
 
     gripper_controller:
       type: joint_trajectory_controller/JointTrajectoryController
+    
+    wrist_controller:
+      type: forward_command_controller/ForwardCommandController
 
 
-arm_controller:
+arm_no_wrist_controller:
   ros__parameters:
     joints:
       - joint_axis_1
       - joint_axis_2
       - joint_axis_3
       - joint_axis_4
-      - joint_axis_5
 
     command_interfaces:
       - position
@@ -40,7 +42,6 @@ arm_controller:
       joint_axis_2: { trajectory: 0.2, goal: 0.1 }
       joint_axis_3: { trajectory: 0.2, goal: 0.1 }
       joint_axis_4: { trajectory: 0.2, goal: 0.1 }
-      joint_axis_5: { trajectory: 0.2, goal: 0.1 }
 
 gripper_controller:
   ros__parameters:
@@ -66,3 +67,9 @@ gripper_controller:
       joint_finger_1: { trajectory: 0.2, goal: 0.05 }
       joint_finger_2: { trajectory: 0.2, goal: 0.05 }
       joint_finger_3: { trajectory: 0.2, goal: 0.05 }
+
+wrist_controller:
+  ros__parameters:
+    joints:
+      - joint_axis_5
+    interface_name: velocity

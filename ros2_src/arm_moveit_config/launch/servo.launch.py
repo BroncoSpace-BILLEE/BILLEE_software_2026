@@ -76,7 +76,7 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument(
                 "planning_group_name",
-                default_value="arm",
+                default_value="arm_no_wrist",
                 description="Planning group to servo.",
             ),
             DeclareLaunchArgument(
