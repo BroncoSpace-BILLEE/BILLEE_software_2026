@@ -1,0 +1,5 @@
+<library path="roboclaw_driver">
+  <class name="roboclaw_driver/RoboClawDriver" type="roboclaw_driver::RoboClawDriver" base_class_type="hardware_interface::SystemInterface">
+    <description>RoboClaw motor controller hardware interface for ros2_control.</description>
+  </class>
+</library>
