@@ -1,3 +1,7 @@
+[submodule "ros2_src/moveit2"]
+	path = ros2_src/moveit2
+	url = https://github.com/BroncoSpace-BILLEE/moveit2.git
+	branch = humble
 [submodule "ros2_src/roboclaw/libroboclaw"]
 	path = ros2_src/roboclaw/libroboclaw
 	url = https://github.com/Achllle/libroboclaw.git

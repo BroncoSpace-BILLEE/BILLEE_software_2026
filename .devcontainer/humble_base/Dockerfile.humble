@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     ros-humble-joy-linux \
     ros-humble-foxglove-bridge \
     ros-humble-foxglove-msgs \
+    ros-humble-rmw-cyclonedds-cpp \
     && rm -rf /var/lib/apt/lists/*
     
 # create a non-root user
@@ -57,6 +58,9 @@ RUN apt-get update && apt-get install -y sudo \
  && usermod -aG sudo ros_user \
  && echo "ros_user ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ros_user \
  && chmod 0440 /etc/sudoers.d/ros_user
+
+
+ENV RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 
 COPY .devcontainer/humble_base/entrypoint.humble.sh /entrypoint.humble.sh
 RUN chmod +x /entrypoint.humble.sh
