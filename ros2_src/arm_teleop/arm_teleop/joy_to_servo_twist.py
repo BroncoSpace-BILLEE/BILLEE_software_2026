@@ -42,6 +42,7 @@ class JoyToServoTwist(Node):
         self.declare_parameter("joy_topic", "/joy")
         self.declare_parameter("servo_pub_topic", "/servo_node/delta_twist_cmds")
         self.declare_parameter("wrist_pub_topic", "/wrist_controller/commands") #topic for the wrist joint controller
+        self.declare_parameter("grip_pub_topic", "/gripper_controller/commands") #topic for the gripper controller
 
         # Frame
         self.declare_parameter("cmd_frame", "link_1_2_1")  # frame for the TwistStamped commands (should be a robot link)
@@ -76,6 +77,8 @@ class JoyToServoTwist(Node):
         self.button_left_stick = 9
         self.button_right_stick = 10
 
+        self.trig_enable = False #to prevent drift from uncalibrated triggers at rest
+
         # ---- State ----
         self._latest_axes: List[float] = []
         self._latest_buttons: List[int] = []
@@ -89,12 +92,15 @@ class JoyToServoTwist(Node):
         #topic for the joint controller 
         wrist_pub_topic = self.get_parameter("wrist_pub_topic").get_parameter_value().string_value
 
-
+        #topic for gripper controller
+        grip_pub_topic = self.get_parameter("grip_pub_topic").get_parameter_value().string_value
 
         self._sub = self.create_subscription(Joy, joy_topic, self._on_joy, 10)
         self._servo_pub = self.create_publisher(TwistStamped, servo_pub_topic, 10)
         
         self._wrist_pub = self.create_publisher(Float64MultiArray, wrist_pub_topic, 10)
+        self._grip_pub = self.create_publisher(Float64MultiArray, grip_pub_topic, 10)
+        self.grip_cmd = 0.0 # 0.0 closed, 1.0 open (for the simple gripper with one command)
 
         hz = float(self.get_parameter("publish_hz").value)
         self._timer = self.create_timer(1.0 / max(hz, 1.0), self._on_timer)
@@ -158,14 +164,19 @@ class JoyToServoTwist(Node):
         lt = self._axis(self.left_trigger_axis)  #  -1 (released) to 1 (fully pressed)
         rt = self._axis(self.right_trigger_axis)
 
-        if lt != 1:  # if LT is pressed
-            vz = self._remap(lt, 1, -1, 0, -max_lin)  # map to 0 (released) to -max_lin (fully pressed)
-        elif rt != 1:  # if RT is pressed
-            vz = self._remap(rt, 1, -1, 0, max_lin)   # map to 0 (released) to max_lin (fully pressed)
-        elif lt == 0.0 and rt == 0.0:  # if both triggers aren't intialized
-            vz = 0.0
-        else:
-            vz = 0.0
+        if lt == 1.0 and rt == 1.0:  
+            self.trig_enable = True
+
+        vz = 0.0
+        if self.trig_enable:
+            if lt != 1:  # if LT is pressed
+                vz = self._remap(lt, 1, -1, 0, -max_lin)  # map to 0 (released) to -max_lin (fully pressed)
+            elif rt != 1:  # if RT is pressed
+                vz = self._remap(rt, 1, -1, 0, max_lin)   # map to 0 (released) to max_lin (fully pressed)
+            elif lt == 0.0 and rt == 0.0:  # if both triggers aren't intialized
+                vz = 0.0
+            else:
+                vz = 0.0
 
         #rotations
         wz = self._remap(self._axis(self.thumb_left_x_axis), -1, 1, -max_ang, max_ang)
@@ -175,7 +186,11 @@ class JoyToServoTwist(Node):
         #rotate wrist up down with right thumbstick y axis
         wy = self._remap(self._axis(self.thumb_right_y_axis), -1, 1, -max_ang, max_ang)
         
-
+        #gripper
+        if self._btn(self.button_a):  # A button to open gripper
+            self.grip_cmd = 1.0  # Open
+        elif self._btn(self.button_b):  # B button to close gripper
+            self.grip_cmd = 0.0  # Close
 
         msg = TwistStamped()
         msg.header.stamp = self.get_clock().now().to_msg()
@@ -192,9 +207,11 @@ class JoyToServoTwist(Node):
 
         msg_wrist = Float64MultiArray()
         msg_wrist.data = [wx]  # Assuming the wrist controller expects a single float
-
         self._wrist_pub.publish(msg_wrist)
 
+        msg_grip = Float64MultiArray()
+        msg_grip.data = [self.grip_cmd,self.grip_cmd,self.grip_cmd]  # Assuming the gripper controller expects
+        self._grip_pub.publish(msg_grip)
 
     def _servo_publish_zero(self) -> None:
         msg = TwistStamped()

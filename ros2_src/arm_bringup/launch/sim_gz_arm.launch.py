@@ -141,7 +141,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument("x", default_value="0.0", description="Spawn X (m)."),
         DeclareLaunchArgument("y", default_value="0.0", description="Spawn Y (m)."),
-        DeclareLaunchArgument("z", default_value="2", description="Spawn Z (m)."),
+        DeclareLaunchArgument("z", default_value="0.05", description="Spawn Z (m)."),
         DeclareLaunchArgument("yaw", default_value="0.0", description="Spawn yaw (rad)."),
     ]
     xacro_path = PathJoinSubstitution([

@@ -35,6 +35,7 @@
     <disable_collisions link1="link_2_3_1" link2="link_3_4_1" reason="Adjacent"/>
     <disable_collisions link1="link_2_3_1" link2="link_4_5_1" reason="Never"/>
     <disable_collisions link1="link_3_4_1" link2="link_4_5_1" reason="Adjacent"/>
+    <disable_collisions link1="link_3_4_1" link2="link_5_endeff_1" reason="User"/>
     <disable_collisions link1="link_4_5_1" link2="link_5_endeff_1" reason="Adjacent"/>
     <disable_collisions link1="link_4_5_1" link2="link_finger_1_1" reason="Never"/>
     <disable_collisions link1="link_4_5_1" link2="link_finger_2_1" reason="Never"/>
