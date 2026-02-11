@@ -1,0 +1,122 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <!-- =========================
+       IMU LINK + SENSOR
+       ========================= -->
+  <xacro:macro name="add_imu_sensor" params="
+      parent:=base_link
+      imu_link:=imu_link
+      xyz:='0 0 0'
+      rpy:='0 0 0'
+      topic:=/imu
+      rate:=200">
+
+    <!-- A dedicated link is nice for TF sanity -->
+    <link name="${imu_link}"/>
+
+    <joint name="${imu_link}_joint" type="fixed">
+      <parent link="${parent}"/>
+      <child link="${imu_link}"/>
+      <origin xyz="${xyz}" rpy="${rpy}"/>
+    </joint>
+
+    <!-- Gazebo extension: attaches an IMU sensor to imu_link -->
+    <gazebo reference="${imu_link}">
+      <sensor name="imu_sensor" type="imu">
+        <always_on>1</always_on>
+        <update_rate>${rate}</update_rate>
+        <topic>${topic}</topic>
+      </sensor>
+    </gazebo>
+  </xacro:macro>
+
+
+  <!-- =========================
+       GPS (NavSat) LINK + SENSOR
+       ========================= -->
+  <xacro:macro name="add_gps_sensor" params="
+      parent:=base_link
+      gps_link:=gps_link
+      xyz:='0 0 0'
+      rpy:='0 0 0'
+      topic:=/navsat
+      rate:=10">
+
+    <link name="${gps_link}"/>
+
+    <joint name="${gps_link}_joint" type="fixed">
+      <parent link="${parent}"/>
+      <child link="${gps_link}"/>
+      <origin xyz="${xyz}" rpy="${rpy}"/>
+    </joint>
+
+    <gazebo reference="${gps_link}">
+      <sensor name="navsat_sensor" type="navsat">
+        <always_on>1</always_on>
+        <update_rate>${rate}</update_rate>
+        <topic>${topic}</topic>
+      </sensor>
+    </gazebo>
+  </xacro:macro>
+
+
+  <!-- =========================
+       DEPTH CAMERA LINK + SENSOR
+       ========================= -->
+  <xacro:macro name="add_depth_camera" params="
+      parent:=base_link
+      cam_link:=camera_link
+      optical_link:=camera_optical_frame
+      xyz:='0.30 0 0.50'
+      rpy:='0 0 0'
+      topic:=/depth_cam
+      rate:=30
+      width:=640
+      height:=480
+      hfov:=1.05
+      near:=0.1
+      far:=20.0">
+
+    <!-- Physical camera mount frame -->
+    <link name="${cam_link}"/>
+
+    <joint name="${cam_link}_joint" type="fixed">
+      <parent link="${parent}"/>
+      <child link="${cam_link}"/>
+      <origin xyz="${xyz}" rpy="${rpy}"/>
+    </joint>
+
+    <!-- Optional but recommended: ROS camera optical frame convention
+         optical frame = rotate -90deg about X, -90deg about Z (URDF rpy)
+         This makes the optical frame +Z forward, +X right, +Y down. -->
+    <link name="${optical_link}"/>
+    <joint name="${optical_link}_joint" type="fixed">
+      <parent link="${cam_link}"/>
+      <child link="${optical_link}"/>
+      <origin xyz="0 0 0" rpy="-1.57079632679 0 -1.57079632679"/>
+    </joint>
+
+    <!-- Attach Gazebo depth sensor to the camera_link (not optical frame) -->
+    <gazebo reference="${cam_link}">
+      <sensor name="depth_cam_sensor" type="depth">
+        <always_on>1</always_on>
+        <update_rate>${rate}</update_rate>
+        <topic>${topic}</topic>
+
+        <camera>
+          <horizontal_fov>${hfov}</horizontal_fov>
+          <image>
+            <width>${width}</width>
+            <height>${height}</height>
+          </image>
+          <clip>
+            <near>${near}</near>
+            <far>${far}</far>
+          </clip>
+        </camera>
+      </sensor>
+    </gazebo>
+  </xacro:macro>
+
+</robot>

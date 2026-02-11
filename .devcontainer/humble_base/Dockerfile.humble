@@ -25,6 +25,9 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     ros-humble-foxglove-bridge \
     ros-humble-foxglove-msgs \
     ros-humble-rmw-cyclonedds-cpp \
+    ros-humble-robot-localization \
+    ros-humble-navigation2 \
+    ros-humble-nav2-bringup \
     && rm -rf /var/lib/apt/lists/*
     
 # create a non-root user

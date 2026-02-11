@@ -13,6 +13,7 @@ from launch.actions import SetEnvironmentVariable
 
 desc_share = get_package_share_directory("chassis_description")  # .../share/chassis_description
 share_root = os.path.dirname(desc_share)                         # .../share
+pkg_share = get_package_share_directory('chassis_bringup')
 
 set_env = [
     SetEnvironmentVariable("IGN_GAZEBO_MODEL_PATH", share_root),
@@ -40,6 +41,9 @@ def generate_launch_description():
     z = LaunchConfiguration("z")
     yaw = LaunchConfiguration("yaw")
 
+    bridge_yaml = os.path.join(pkg_share, 'config', 'bridge.yaml')
+    world_path = os.path.join(pkg_share, 'worlds', 'offroad_test.world.sdf')
+
     declare_args = [
         DeclareLaunchArgument(
             "description_pkg",
@@ -58,7 +62,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "gz_args",
-            default_value="-r -v 4 empty.sdf",
+            default_value=f"-r -v 4 {world_path}",
             description="Arguments passed to Gazebo Sim (via ros_gz_sim gz_sim.launch.py).",
         ),
         DeclareLaunchArgument("x", default_value="0.0", description="Spawn X (m)."),
@@ -79,6 +83,18 @@ def generate_launch_description():
         "controllers.yaml",
     ])
 
+    
+
+    # 1) Launch Gazebo Sim (Fortress) with a specific world
+    gz_sim_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(get_package_share_directory('ros_gz_sim'), 'launch', 'gz_sim.launch.py')
+        ),
+        launch_arguments={
+            'gz_args': f'-r -v 4 {world_path}',  # -r = run, -v 4 = verbose
+        }.items()
+    )
+
     robot_description = ParameterValue(
     Command([
         "xacro", " ",
@@ -88,20 +104,7 @@ def generate_launch_description():
     value_type=str,
     )
 
-    # --- Launch Gazebo Sim using ros_gz_sim's included launch file ---
-    gz_sim_launch = IncludeLaunchDescription(
-    PythonLaunchDescriptionSource(
-        PathJoinSubstitution([
-            FindPackageShare("ros_gz_sim"),
-            "launch",
-            "gz_sim.launch.py"
-        ])
-    ),
-    launch_arguments={
-        "gz_args": gz_args,
-        "on_exit_shutdown": "true",
-    }.items(),
-    )
+  
 
     # --- Publish TF and robot_description ---
     robot_state_publisher = Node(
@@ -112,35 +115,32 @@ def generate_launch_description():
         parameters=[{"robot_description": robot_description, "use_sim_time": True}],
     )
 
-    # --- Bridge /clock so ROS nodes use simulation time (critical for controllers / Nav2) ---
-    clock_bridge = Node(
-        package="ros_gz_bridge",
-        executable="parameter_bridge",
-        name="clock_bridge",
-        output="screen",
-        arguments=[
-            # 1. The Topic to bridge
-            "/world/empty/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock",
-            
-            # 2. Force the remapping using explicit flags
-            "--ros-args",
-            "-r",
-            "/world/empty/clock:=/clock"
-        ]
+    bridge = Node(
+        package='ros_gz_bridge',
+        executable='parameter_bridge',
+        name='ros_gz_bridge',
+        output='screen',
+        parameters=[{'config_file': bridge_yaml, 'use_sim_time': True}],
+        arguments=['--ros-args', '--log-level', 'debug'],
     )
+
 
     # --- Spawn the robot from /robot_description into Gazebo ---
     spawn_entity = Node(
-        package="ros_gz_sim",
-        executable="create",
-        output="screen",
-        arguments=[
-            "-name", entity_name,
-            "-topic", "robot_description",
-            "-x", x, "-y", y, "-z", z,
-            "-Y", yaw,
-        ],
+    package="ros_gz_sim",
+    executable="create",
+    output="screen",
+    arguments=[
+        "-world", "empty",
+        "-name", entity_name,
+        "-topic", "robot_description",
+        "-x", x, "-y", y, "-z", z,
+        "-Y", yaw,
+    ],
     )
+
+    spawn_entity_delayed = TimerAction(period=2.0, actions=[spawn_entity])
+
 
     spawn_jsb = Node(
         package="controller_manager",
@@ -173,9 +173,9 @@ def generate_launch_description():
         + [set_env_bridge]
         + [
             gz_sim_launch,
-            clock_bridge,
+            bridge,
             robot_state_publisher,
-            spawn_entity,
+            spawn_entity_delayed,
             spawn_controllers,
         ]
     )

@@ -351,6 +351,22 @@
 
 </ros2_control>
 
+<xacro:include filename="$(find chassis_description)/urdf/chassis_sensors.gazebo.xacro"/>
+<xacro:add_imu_sensor parent="base_link" imu_link="imu_link"
+                          xyz="0.0 0.0 0.15" rpy="0 0 0"
+                          topic="/imu" rate="200"/>
+
+    <xacro:add_gps_sensor parent="base_link" gps_link="gps_link"
+                          xyz="0.0 0.0 0.30" rpy="0 0 0"
+                          topic="/navsat" rate="10"/>
+
+    <xacro:add_depth_camera parent="base_link"
+                            cam_link="camera_link"
+                            optical_link="camera_optical_frame"
+                            xyz="0.35 0.0 0.55" rpy="0 0 0"
+                            topic="/depth_cam"
+                            rate="30"/>
+
 <gazebo>
   <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
     <robot_param>robot_description</robot_param>
