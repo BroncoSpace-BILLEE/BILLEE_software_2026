@@ -35,7 +35,7 @@
 		"XDG_RUNTIME_DIR": "${localEnv:XDG_RUNTIME_DIR}"
   },
 
-  "postStartCommand": "bash -c 'source /opt/ros/${ROS_DISTRO}/setup.bash && colcon build --symlink-install --parallel-workers $(nproc)'",
+  "postStartCommand": "bash -c 'source /opt/ros/${ROS_DISTRO}/setup.bash && colcon build --packages-skip-regex ^zed --symlink-install --parallel-workers $(nproc)'",
 
   "customizations": {
     "vscode": {
