@@ -36,7 +36,6 @@ RUN if [ "$(curl -L -I "${ZED_SDK_URL}" -o /dev/null -s -w '%{http_code}\n' | he
     fi
 
 
-# Install ROS2
 
 # Set and Check Locale
 RUN apt-get update || true && \
@@ -113,11 +112,26 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 # Install the ZED SDK
 RUN echo "CUDA Version $CUDA_VERSION" > /usr/local/cuda/version.txt
 
+# add PPA for lely canopen
+RUN  add-apt-repository ppa:lely/ppa
+
 #create a virtual environment for the ZED SDK and ROS2 packages
 RUN apt-get update && apt-get install --no-install-recommends -y \
 python3-opencv \ 
 python3.10-venv \
 && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && apt-get install --no-install-recommends -y \
+liblely-coapp-dev \
+liblely-co-tools \ 
+python3-dcf-tools \
+&& rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && apt-get install --no-install-recommends -y \ 
+can-utils \
+usbutils \
+kmod \
+&& rm -rf /var/lib/apt/lists/* 
 
 # Setup the ZED SDK
 RUN apt-get update -y || true && \

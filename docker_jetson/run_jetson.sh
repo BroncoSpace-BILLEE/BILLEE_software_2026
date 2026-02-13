@@ -15,6 +15,12 @@ HOST_WS="${REPO_ROOT}/ros2_src"
 CONTAINER_NAME="billee_ros"
 IMAGE="my_isaac_ros_jetson:humble"
 
+# if the can hat is connected then pass it to the container
+if [ -e /dev/can0 ]; then
+    DEV_ARG="--device=/dev/can0:/dev/can0"
+fi
+
+
 # If the container is already running, just open a new shell in it
 if docker ps --format '{{.Names}}' | grep -qx "${CONTAINER_NAME}"; then
   exec docker exec -it "${CONTAINER_NAME}" bash
@@ -32,6 +38,7 @@ exec docker run -it \
   --mount "type=bind,source=${HOST_WS},target=/home/ros_user/ros2_ws/src" \
   --network=host \
   --ipc=host \
+  ${DEV_ARG} \
   --runtime nvidia \
   -e "DISPLAY=${DISPLAY}" \
   -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
