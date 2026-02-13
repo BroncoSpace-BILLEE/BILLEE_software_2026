@@ -1,0 +1,128 @@
+master:
+  # Master node ID (typically 1 for the master)
+  node_id: 1
+  driver: "ros2_canopen::CanopenMaster"
+  # Package containing the driver
+  package: "canopen_master_driver"
+  # CAN interface name (e.g., "can0", "can1", etc.)
+  # Check that this is the right interface for CAN hardware (should be fed in container)
+  can_interface: "can0"
+
+slaves:
+  # Slave node 2 - Motor Drive
+  - node_id: 2
+    driver: "ros2_canopen::CanopenDriver"
+    package: "canopen_base_driver"
+    baudrate: 1000 # default baudrate from the manual but can reconfig
+    # Sync cycle time in microseconds (0 = no sync)
+    # EDS NOTE: Confirm the sync cycle from your drive's EDS (typical: 10000 us)
+    sync_cycle_ns: 1000 $
+    # PDO communication parameters
+    # EDS NOTE: Fill these from the EDS - look for "Receive PDO" (RPDO) sections
+    rpdo:
+      # RPDO 1 - Typically used for control/commands
+      - idx: 1
+        # COB-ID for RPDO1 (defined as 0x200 + node_id)
+        cob_id: 0x202
+        # Cycle time in milliseconds (0 = event-driven)
+        # EDS NOTE: Confirm from EDS "RPDO1 - Event timer"
+        cycle_ms: 0
+        # Sync counter (0 = acyclic, 1+ = every Nth SYNC)
+        # EDS NOTE: Verify from EDS "RPDO1 - Synchronous counter"
+        sync: 0
+      # RPDO 1 - Typically used for control/commands
+      - idx: 2
+        # COB-ID for RPDO1 (defined as 0x300 + node_id)
+        cob_id: 0x302
+        # Cycle time in milliseconds (0 = event-driven)
+        # EDS NOTE: Confirm from EDS "RPDO1 - Event timer"
+        cycle_ms: 0
+        # Sync counter (0 = acyclic, 1+ = every Nth SYNC)
+        # EDS NOTE: Verify from EDS "RPDO1 - Synchronous counter"
+        sync: 0
+      - idx: 3
+        # COB-ID for RPDO1 (defined as 0x400 + node_id)
+        cob_id: 0x402
+        # Cycle time in milliseconds (0 = event-driven)
+        # EDS NOTE: Confirm from EDS "RPDO1 - Event timer"
+        cycle_ms: 0
+        # Sync counter (0 = acyclic, 1+ = every Nth SYNC)
+        # EDS NOTE: Verify from EDS "RPDO1 - Synchronous counter"
+        sync: 0
+      - idx: 4
+        # COB-ID for RPDO1 (defined as 0x500 + node_id)
+        cob_id: 0x502
+        # Cycle time in milliseconds (0 = event-driven)
+        # EDS NOTE: Confirm from EDS "RPDO1 - Event timer"
+        cycle_ms: 0
+        # Sync counter (0 = acyclic, 1+ = every Nth SYNC)
+        # EDS NOTE: Verify from EDS "RPDO1 - Synchronous counter"
+        sync: 0
+    
+    # Transmit PDO communication parameters (drive -> master)
+    # EDS NOTE: Fill these from the EDS - look for "Transmit PDO" (TPDO) sections
+    tpdo:
+      # TPDO 1 - Status/feedback from drive
+      - idx: 1
+        # COB-ID for TPDO1 (Transmit PDO 1) (0x180 + node_id)
+        cob_id: 0x182
+
+      - idx: 2
+        # COB-ID for TPDO2 (0x280 + node_id)
+        cob_id: 0x282
+
+      - idx: 3
+        # COB-ID for TPDO3 (0x380 + node_id)
+        cob_id: 0x382
+
+      - idx: 4
+        # COB-ID for TPDO4 (0x480 + node_id)
+        cob_id: 0x482
+    
+    # PDO mapping - which objects are included in each PDO
+    # This maps CANopen objects into the PDO frames
+    # EDS NOTE: For RPDO1, find "RPDO1 Mapping" in EDS - lists all sub-entries
+    # Example for a typical drive:
+    # RPDO1 typically contains:
+    #   - 0x6040:0 (Control word, UINT16)
+    #   - 0x60FF:0 (Target velocity, INT32)
+    mapping:
+      # RPDO1 mapping
+      rpdo1:
+        # Controlword (needed to enable/disable drive)
+        # EDS NOTE: Verify this object exists in your EDS (usually 0x6040:0)
+        - index: 0x6040
+          subindex: 0
+          # "Control word" UINT16 - commands like start, stop, etc.
+      # TPDO1 mapping - status from drive
+      # EDS NOTE: Verify these objects exist in your EDS
+      tpdo1:
+        - index: 0x6041
+          subindex: 0
+          # "Status word" UINT16 - reports drive state
+        - index: 0x6064
+          subindex: 0
+          # "Position actual value" INT32 - current encoder position
+
+# SDO (Service Data Object) Parameters
+# These are used for configuring the drive at startup
+# EDS NOTE: Add any additional configuration needed from your drive's EDS
+sdo:
+  # Example: Set drive to velocity mode
+  - node_id: 2
+    index: 0x6060
+    subindex: 0
+    value: 3  # 3 = velocity mode (confirm in EDS)
+    data_type: INT8
+
+# Additional notes for filling from EDS:
+# 1. Open your motor drive's EDS file (XML or text format)
+# 2. Find the "Communication" section for PDO parameters (COB-IDs, cycle times)
+# 3. Find the "Mapping" section to see which objects are included in each PDO
+# 4. Common CiA-402 motor drive objects:
+#    - 0x6040:0 = Control word (UINT16)
+#    - 0x6041:0 = Status word (UINT16)
+#    - 0x6060:0 = Modes of operation (INT8)
+#    - 0x60FF:0 = Target velocity (INT32)
+#    - 0x6064:0 = Position actual value (INT32)
+#    - 0x606C:0 = Velocity actual value (INT32)
