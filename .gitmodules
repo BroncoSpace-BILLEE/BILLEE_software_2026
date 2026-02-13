@@ -7,6 +7,6 @@
 [submodule "ros2_src/zed-ros2-examples"]
 	path = ros2_src/zed-ros2-examples
 	url = https://github.com/stereolabs/zed-ros2-examples.git
-[submodule "ros2_src/ros2_canopen"]
-	path = ros2_src/ros2_canopen
-	url = https://github.com/ros-industrial/ros2_canopen.git
+[submodule "ros2_src/ros_odrive"]
+	path = ros2_src/ros_odrive
+	url = https://github.com/odriverobotics/ros_odrive.git
