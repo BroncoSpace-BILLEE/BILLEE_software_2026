@@ -1,10 +1,10 @@
-[submodule "ros2_src/moveit2"]
-	path = ros2_src/moveit2
-	url = https://github.com/BroncoSpace-BILLEE/moveit2.git
-	branch = humble
 [submodule "ros2_src/roboclaw/libroboclaw"]
 	path = ros2_src/roboclaw/libroboclaw
 	url = https://github.com/Achllle/libroboclaw.git
 [submodule "ros2_src/zed-ros2-wrapper"]
 	path = ros2_src/zed-ros2-wrapper
 	url = https://github.com/stereolabs/zed-ros2-wrapper.git
+[submodule "ros2_src/moveit2"]
+	path = ros2_src/moveit2
+	url = https://github.com/BroncoSpace-BILLEE/moveit2.git
+	branch = humble
