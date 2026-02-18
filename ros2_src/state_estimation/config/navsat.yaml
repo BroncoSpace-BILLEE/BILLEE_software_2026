@@ -1,0 +1,17 @@
+# ---------------------------------------------------------------------------
+# navsat_transform_node
+# Converts GPS (NavSatFix) → /odometry/gps in the map frame
+# so the global EKF can fuse it as a position source.
+# ---------------------------------------------------------------------------
+navsat_transform:
+  ros__parameters:
+    use_sim_time: true
+    frequency: 30.0
+    delay: 3.0                            # wait for valid data before publishing
+    magnetic_declination_radians: 0.0     # set for your locale if needed
+    yaw_offset: 1.5707963                 # pi/2 – ENU to ROS (X-east → X-north)
+    zero_altitude: true                   # project to 2-D plane
+    use_odometry_yaw: false               # use IMU yaw, not odom yaw
+    wait_for_datum: false                 # auto-set datum from first GPS fix
+    publish_filtered_gps: true            # republish filtered fix for diagnostics
+    broadcast_cartesian_transform: false  # we let the global EKF handle map→odom

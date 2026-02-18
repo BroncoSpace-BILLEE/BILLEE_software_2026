@@ -27,7 +27,7 @@ diff_drive_controller:
 
     base_frame_id: base_link
     odom_frame_id: odom
-    enable_odom_tf: true
+    enable_odom_tf: false    # robot_localization publishes odom->base_link
 
     publish_rate: 50.0
     use_stamped_vel: false
