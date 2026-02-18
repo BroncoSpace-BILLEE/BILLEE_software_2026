@@ -139,6 +139,11 @@ def generate_launch_description():
     ],
     )
 
+    # Delay RSP so it receives valid /clock before publishing /tf_static
+    robot_state_publisher_delayed = TimerAction(
+        period=1.0, actions=[robot_state_publisher]
+    )
+
     spawn_entity_delayed = TimerAction(period=2.0, actions=[spawn_entity])
 
 
@@ -164,7 +169,21 @@ def generate_launch_description():
         actions=[spawn_jsb, spawn_diff],
     )
 
- 
+    # Ignition Fortress depth/camera sensors ignore <ignition_frame_id>,
+    # so they publish with the scoped frame "chassis/base_link/depth_cam_sensor".
+    # The depth sensor outputs points in the SDF link frame convention
+    # (X-forward, Y-left, Z-up), matching camera_link, not the optical frame.
+    gz_depth_frame_bridge = Node(
+        package="tf2_ros",
+        executable="static_transform_publisher",
+        name="gz_depth_frame_bridge",
+        output="screen",
+        arguments=[
+            "--frame-id", "camera_link",
+            "--child-frame-id", "chassis/base_link/depth_cam_sensor",
+        ],
+        parameters=[{"use_sim_time": True}],
+    )
 
 
     return LaunchDescription(
@@ -174,8 +193,9 @@ def generate_launch_description():
         + [
             gz_sim_launch,
             bridge,
-            robot_state_publisher,
+            robot_state_publisher_delayed,
             spawn_entity_delayed,
             spawn_controllers,
+            gz_depth_frame_bridge,
         ]
     )

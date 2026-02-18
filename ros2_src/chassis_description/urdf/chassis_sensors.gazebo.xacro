@@ -27,6 +27,7 @@
         <always_on>1</always_on>
         <update_rate>${rate}</update_rate>
         <topic>${topic}</topic>
+        <ignition_frame_id>${imu_link}</ignition_frame_id>
       </sensor>
     </gazebo>
   </xacro:macro>
@@ -56,6 +57,7 @@
         <always_on>1</always_on>
         <update_rate>${rate}</update_rate>
         <topic>${topic}</topic>
+        <ignition_frame_id>${gps_link}</ignition_frame_id>
       </sensor>
     </gazebo>
   </xacro:macro>
@@ -103,6 +105,7 @@
         <always_on>1</always_on>
         <update_rate>${rate}</update_rate>
         <topic>${topic}</topic>
+        <ignition_frame_id>${optical_link}</ignition_frame_id>
 
         <camera>
           <horizontal_fov>${hfov}</horizontal_fov>
