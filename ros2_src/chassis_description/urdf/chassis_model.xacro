@@ -277,44 +277,44 @@
 
 <joint name="joint_wheel_r1" type="continuous">
   <origin xyz="0.15 0.0 -0.122" rpy="0 0 0"/>
-  <parent link="suspension_2_left_1"/>
-  <child link="wheel_3"/>
-  <axis xyz="0.0 1.0 0.0"/>
+  <parent link="suspension_2_right_1"/>
+  <child link="wheel_r_1"/>
+  <axis xyz="0.0 -1.0 0.0"/>
 </joint>
 
 <joint name="joint_wheel_r2" type="continuous">
   <origin xyz="-0.24 0.0 -0.122" rpy="0 0 0"/>
-  <parent link="suspension_2_left_1"/>
-  <child link="wheel_2"/>
-  <axis xyz="0.0 1.0 0.0"/>
+  <parent link="suspension_2_right_1"/>
+  <child link="wheel_r_2"/>
+  <axis xyz="0.0 -1.0 0.0"/>
 </joint>
 
 <joint name="joint_wheel_r3" type="continuous">
-  <origin xyz="-0.44 -0.0381 -0.244" rpy="0 0 0"/>
-  <parent link="suspension_1_left_1"/>
-  <child link="wheel_1"/>
-  <axis xyz="0.0 1.0 0.0"/>
+  <origin xyz="-0.44 0 -0.244" rpy="0 0 0"/>
+  <parent link="suspension_1_right_1"/>
+  <child link="wheel_r_3"/>
+  <axis xyz="0.0 -1.0 0.0"/>
 </joint>
 
 <joint name="joint_wheel_l1" type="continuous">
-  <origin xyz="-0.44 0.0381 -0.244" rpy="0 0 0"/>
-  <parent link="suspension_1_right_1"/>
-  <child link="wheel_r_1"/>
-  <axis xyz="0.0 1.0 0.0"/>
+  <origin xyz="-0.44 0 -0.244" rpy="0 0 0"/>
+  <parent link="suspension_1_left_1"/>
+  <child link="wheel_1"/>
+  <axis xyz="0.0 -1.0 0.0"/>
 </joint>
 
 <joint name="joint_wheel_l2" type="continuous">
   <origin xyz="-0.24 0.0 -0.122" rpy="0 0 0"/>
-  <parent link="suspension_2_right_1"/>
-  <child link="wheel_r_2"/>
-  <axis xyz="0.0 1.0 0.0"/>
+  <parent link="suspension_2_left_1"/>
+  <child link="wheel_2"/>
+  <axis xyz="0.0 -1.0 0.0"/>
 </joint>
 
 <joint name="joint_wheel_l3" type="continuous">
   <origin xyz="0.15 0.0 -0.122" rpy="0 0 0"/>
-  <parent link="suspension_2_right_1"/>
-  <child link="wheel_r_3"/>
-  <axis xyz="0.0 1.0 0.0"/>
+  <parent link="suspension_2_left_1"/>
+  <child link="wheel_3"/>
+  <axis xyz="0.0 -1.0 0.0"/>
 </joint>
 
 <!-- ros2_control: declare command/state interfaces for wheel joints -->

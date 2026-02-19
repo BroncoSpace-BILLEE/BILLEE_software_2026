@@ -89,8 +89,7 @@ class manual_control(Node):
         lx = self.axes[AXIS_LX]
         ly = self.axes[AXIS_LY]
 
-        # Invert Y so pushing stick up -> positive forward velocity
-        forward = -ly
+        forward = ly
         turn = lx
 
         #forward = apply_deadzone(forward, DEADZONE)
