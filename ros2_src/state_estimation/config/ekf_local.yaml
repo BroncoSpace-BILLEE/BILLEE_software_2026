@@ -1,7 +1,7 @@
 # ---------------------------------------------------------------------------
 # EKF – LOCAL (odom frame)
 # Fuses:  wheel odometry velocities  +  IMU orientation / angular-vel / accel
-# Publishes:  odom -> base_link TF  and  /odometry/filtered
+# Publishes:  odom -> base_footprint TF  and  /odometry/filtered
 # ---------------------------------------------------------------------------
 ekf_local:
   ros__parameters:
@@ -17,7 +17,7 @@ ekf_local:
     # Frame configuration
     map_frame: map
     odom_frame: odom
-    base_link_frame: base_link
+    base_link_frame: base_footprint
     world_frame: odom            # local filter works in the odom frame
 
     publish_tf: true

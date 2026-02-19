@@ -5,7 +5,7 @@ Dual-EKF + navsat_transform pipeline for nav2-ready state estimation.
 
 Nodes launched
 ──────────────
-1. ekf_local  – fuses wheel odom + IMU → /odometry/filtered, odom→base_link TF
+1. ekf_local  – fuses wheel odom + IMU → /odometry/filtered, odom→base_footprint TF
 2. navsat_transform – converts GPS NavSatFix → /odometry/gps
 3. ekf_global – fuses wheel odom + IMU + GPS odom → /odometry/global, map→odom TF
 """

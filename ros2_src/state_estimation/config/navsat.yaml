@@ -7,6 +7,8 @@ navsat_transform:
   ros__parameters:
     use_sim_time: true
     frequency: 30.0
+    base_link_frame: base_footprint
+    odom_frame: odom
     delay: 3.0                            # wait for valid data before publishing
     magnetic_declination_radians: 0.0     # set for your locale if needed
     yaw_offset: 1.5707963                 # pi/2 – ENU to ROS (X-east → X-north)

@@ -5,6 +5,17 @@
 <xacro:arg name="controllers_yaml" default="" />
 <!--xacro:include filename="$(find chassis_description)/urdf/chassis_model.trans" /-->
 <!--xacro:include filename="$(find chassis_description)/urdf/chassis_model.gazebo" /-->
+
+<!-- Root frame aligned with ROS conventions (+X forward, +Y left, +Z up) -->
+<link name="base_footprint"/>
+
+<!-- CAD export had base_link facing opposite X; rotate by pi around Z -->
+<joint name="base_footprint_to_base_link" type="fixed">
+  <origin xyz="0 0 0" rpy="0 0 3.141592653589793"/>
+  <parent link="base_footprint"/>
+  <child link="base_link"/>
+</joint>
+
 <link name="base_link">
   <inertial>
     <origin xyz="0.3026093095883329 4.957188589394069e-17 -0.00019403432456449078" rpy="0 0 0"/>
@@ -352,15 +363,15 @@
 </ros2_control>
 
 <xacro:include filename="$(find chassis_description)/urdf/chassis_sensors.gazebo.xacro"/>
-<xacro:add_imu_sensor parent="base_link" imu_link="imu_link"
+<xacro:add_imu_sensor parent="base_footprint" imu_link="imu_link"
                           xyz="0.0 0.0 0.15" rpy="0 0 0"
                           topic="/imu" rate="200"/>
 
-    <xacro:add_gps_sensor parent="base_link" gps_link="gps_link"
+    <xacro:add_gps_sensor parent="base_footprint" gps_link="gps_link"
                           xyz="0.0 0.0 0.30" rpy="0 0 0"
                           topic="/navsat" rate="10"/>
 
-    <xacro:add_depth_camera parent="base_link"
+    <xacro:add_depth_camera parent="base_footprint"
                             cam_link="camera_link"
                             optical_link="camera_optical_frame"
                             xyz="0.35 0.0 0.55" rpy="0 0 0"

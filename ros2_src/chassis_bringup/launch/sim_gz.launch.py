@@ -170,7 +170,7 @@ def generate_launch_description():
     )
 
     # Ignition Fortress depth/camera sensors ignore <ignition_frame_id>,
-    # so they publish with the scoped frame "chassis/base_link/depth_cam_sensor".
+    # so they publish with the scoped frame "chassis/base_footprint/depth_cam_sensor".
     # The depth sensor outputs points in the SDF link frame convention
     # (X-forward, Y-left, Z-up), matching camera_link, not the optical frame.
     gz_depth_frame_bridge = Node(
@@ -180,7 +180,7 @@ def generate_launch_description():
         output="screen",
         arguments=[
             "--frame-id", "camera_link",
-            "--child-frame-id", "chassis/base_link/depth_cam_sensor",
+            "--child-frame-id", "chassis/base_footprint/depth_cam_sensor",
         ],
         parameters=[{"use_sim_time": True}],
     )

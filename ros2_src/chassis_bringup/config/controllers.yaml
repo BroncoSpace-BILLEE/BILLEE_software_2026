@@ -25,9 +25,9 @@ diff_drive_controller:
     wheel_separation: 0.67   # track width
     wheel_radius: 0.11 
 
-    base_frame_id: base_link
+    base_frame_id: base_footprint
     odom_frame_id: odom
-    enable_odom_tf: false    # robot_localization publishes odom->base_link
+    enable_odom_tf: false    # robot_localization publishes odom->base_footprint (via fixed base_footprint<->base_link)
 
     publish_rate: 50.0
     use_stamped_vel: false

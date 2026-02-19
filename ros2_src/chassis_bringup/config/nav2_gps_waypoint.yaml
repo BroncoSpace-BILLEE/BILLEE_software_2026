@@ -2,7 +2,7 @@
 # Nav2 parameters – GPS waypoint navigation with rolling costmaps
 # ---------------------------------------------------------------------------
 # No AMCL or map_server: localisation is provided by the state_estimation
-# package (dual-EKF + navsat_transform → map→odom→base_link TF chain).
+# package (dual-EKF + navsat_transform → map→odom→base_footprint TF chain).
 # Both costmaps use rolling windows so no prior map is required.
 # Obstacle detection comes from the depth camera PointCloud2 (/depth/points).
 # ---------------------------------------------------------------------------
@@ -11,7 +11,7 @@ bt_navigator:
   ros__parameters:
     use_sim_time: True
     global_frame: map
-    robot_base_frame: base_link
+    robot_base_frame: base_footprint
     odom_topic: /odometry/global
     bt_loop_duration: 10
     default_server_timeout: 20
@@ -135,7 +135,7 @@ local_costmap:
       update_frequency: 5.0
       publish_frequency: 2.0
       global_frame: odom
-      robot_base_frame: base_link
+      robot_base_frame: base_footprint
       use_sim_time: True
       rolling_window: true
       width: 5
@@ -175,7 +175,7 @@ global_costmap:
       update_frequency: 1.0
       publish_frequency: 1.0
       global_frame: map
-      robot_base_frame: base_link
+      robot_base_frame: base_footprint
       use_sim_time: True
       rolling_window: true
       width: 50
@@ -251,7 +251,7 @@ behavior_server:
     assisted_teleop:
       plugin: "nav2_behaviors/AssistedTeleop"
     global_frame: odom
-    robot_base_frame: base_link
+    robot_base_frame: base_footprint
     transform_tolerance: 0.1
     use_sim_time: True
     simulate_ahead_time: 2.0

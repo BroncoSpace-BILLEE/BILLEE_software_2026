@@ -4,7 +4,7 @@ nav2_gps.launch.py
 Nav2 GPS waypoint navigation with rolling costmaps.
 
 Brings up:
-  1. state_estimation (dual-EKF + navsat_transform) – provides map→odom→base_link
+    1. state_estimation (dual-EKF + navsat_transform) – provides map→odom→base_footprint
      TF chain and /odometry/filtered, /odometry/global topics
   2. Nav2 navigation stack (no AMCL / map_server) configured for:
      • rolling global + local costmaps (no prior map required)
