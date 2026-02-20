@@ -17,7 +17,7 @@ setup(
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='root',
-    maintainer_email='Vernonicuhhh@protonmail.com',
+    maintainer_email='todo@todo.com',
     description='Standalone ROS2 node to control ODrive via CAN using joystick input',
     license='Apache-2.0',
     extras_require={
