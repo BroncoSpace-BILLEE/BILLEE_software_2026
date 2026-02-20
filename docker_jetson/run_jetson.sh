@@ -33,6 +33,9 @@ exec docker run -it \
   --network=host \
   --ipc=host \
   --runtime nvidia \
+  --device=/dev/bus/usb:/dev/bus/usb \
+  --device-cgroup-rule", "c 240:* rmw \
+  --device-cgroup-rule", "c 81:* rmw \
   -e "DISPLAY=${DISPLAY}" \
   -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
   -v /tmp/argus_socket:/tmp/argus_socket \
