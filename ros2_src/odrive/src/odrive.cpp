@@ -1,7 +1,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/float64.hpp>
-#include <sensor_msgs/msg/joy.hpp>
+#include <geometry_msgs/msg/twist.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
 #include "odrive/Constants.hpp"
 #include <thread>
@@ -30,13 +30,13 @@ public:
   {
     this->declare_parameter<std::string>("can_interface", "can2");
     this->declare_parameter<int>("node_id", 0);
-    this->declare_parameter<int>("joy_axis", 1);
-    this->declare_parameter<double>("joy_scale", 1.0); // max is 1 rev/s
+    this->declare_parameter<std::string>("cmd_vel_topic", "/cmd_vel");
+    this->declare_parameter<double>("cmd_vel_scale", 1.0); // max is 1 rev/s
 
     this->get_parameter("can_interface", can_if_);
     this->get_parameter("node_id", node_id_);
-    this->get_parameter("joy_axis", joy_axis_);
-    this->get_parameter("joy_scale", joy_scale_);
+    this->get_parameter("cmd_vel_topic", cmd_vel_topic_);
+    this->get_parameter("cmd_vel_scale", cmd_vel_scale_);
 
     RCLCPP_INFO(this->get_logger(), "Opening CAN interface: %s", can_if_.c_str());
 
@@ -60,23 +60,10 @@ public:
       }
     }
 
-    // Subscribe to joystick topic (joy_linux publishes sensor_msgs::msg::Joy by default)
-    joy_sub_ = this->create_subscription<sensor_msgs::msg::Joy>(
-      joy_topic_, 10,
-      [this](const sensor_msgs::msg::Joy::SharedPtr msg) {
-        if (static_cast<int>(msg->axes.size()) <= joy_axis_) {
-          RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000,
-            "Joy message has no axis %d", joy_axis_);
-          return;
-        }
-        float axis = static_cast<float>(msg->axes[joy_axis_]);
-        float vel = axis * static_cast<float>(joy_scale_);
-        if (!send_set_input_vel(sock_, node_id_, vel, 0.0f)) {
-          RCLCPP_ERROR(this->get_logger(), "Failed to send Set_Input_Vel from joy");
-        } else {
-          RCLCPP_DEBUG(this->get_logger(), "Joy -> velocity %.6f (axis %d = %.3f)", vel, joy_axis_, axis);
-        }
-      }
+    // Subscribe to cmd_vel topic (geometry_msgs::msg::Twist)
+    cmd_vel_sub_ = this->create_subscription<geometry_msgs::msg::Twist>(
+      cmd_vel_topic_, 10,
+      std::bind(&ODriveCanNode::cmd_vel_callback, this, std::placeholders::_1)
     );
 
     // Publisher for encoder estimates (position, velocity)
@@ -246,6 +233,16 @@ private:
     }
   }
 
+  void cmd_vel_callback(const geometry_msgs::msg::Twist::SharedPtr msg)
+  {
+    float vel = static_cast<float>(msg->linear.x * cmd_vel_scale_);
+    if (!send_set_input_vel(sock_, node_id_, vel, 0.0f)) {
+      RCLCPP_ERROR(this->get_logger(), "Failed to send Set_Input_Vel from cmd_vel");
+    } else {
+      RCLCPP_DEBUG(this->get_logger(), "cmd_vel -> velocity %.6f (linear.x %.3f)", vel, msg->linear.x);
+    }
+  }
+
   /**
    * @brief Waits for a heartbeat message indicating the axis has reached a desired state.
    * @details Polls the CAN socket using select() with 100ms timeouts until either the
@@ -290,10 +287,9 @@ private:
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr enc_pub_;
   std::thread reader_thread_;
   std::atomic<bool> running_{false};
-  std::string joy_topic_ = "joy";
-  int joy_axis_ = 1;
-  double joy_scale_ = 1.0;
-  rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub_;
+  std::string cmd_vel_topic_ = "/cmd_vel";
+  double cmd_vel_scale_ = 1.0;
+  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
 
 };
 
