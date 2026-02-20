@@ -4,7 +4,7 @@
   <name>odrive_control</name>
   <version>0.0.0</version>
   <description>Standalone ROS2 node to control ODrive via CAN using joystick input</description>
-  <maintainer email="Vernonicuhhh@protonmail.com">root</maintainer>
+  <maintainer email="todo@todo.com">root</maintainer>
   <license>Apache-2.0</license>
 
   <depend>rclpy</depend>
