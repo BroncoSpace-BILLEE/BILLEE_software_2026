@@ -4,7 +4,7 @@
   <name>canopen_control</name>
   <version>0.0.0</version>
   <description>Joystick-controlled CANopen motor drive using socketCAN</description>
-  <maintainer email="Vernonicuhhh@protonmail.com">root</maintainer>
+  <maintainer email="todo@todo.com">root</maintainer>
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
