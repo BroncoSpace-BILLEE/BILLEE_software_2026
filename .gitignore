@@ -5,3 +5,4 @@ build
 install
 log
 diagnostic_results.json
+*.onnx
