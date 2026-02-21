@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<library path="odrive_hw_interface">
+  <class
+    name="odrive/ODriveSystemInterface"
+    type="odrive::ODriveSystemInterface"
+    base_class_type="hardware_interface::SystemInterface">
+    <description>ODrive CAN hardware interface for ros2_control (multi-joint, single CAN bus).</description>
+  </class>
+</library>

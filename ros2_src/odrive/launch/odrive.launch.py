@@ -54,7 +54,7 @@ def generate_launch_description():
         parameters=[
             {"can_interface": LaunchConfiguration("can_interface")},
             {"node_id": LaunchConfiguration("node_id")},
-            {"cmd_vel_topic": LaunchConfiguration("cmd_vel_topic")},
+            {"joint_state_topic": LaunchConfiguration("joint_state_topic")},
             {"cmd_vel_scale": LaunchConfiguration("cmd_vel_scale")},
         ],
     )
@@ -62,7 +62,7 @@ def generate_launch_description():
     return LaunchDescription([
         can_interface_arg,
         node_id_arg,
-        joint_topic_arg
+        joint_topic_arg,
         cmd_vel_scale_arg,
         odrive_node,
     ])

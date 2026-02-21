@@ -145,7 +145,9 @@ def generate_launch_description():
     spawn_jsb = Node(
         package="controller_manager",
         executable="spawner",
-        arguments=["joint_state_broadcaster", "--controller-manager", "/controller_manager"],
+        arguments=["joint_state_broadcaster", "--controller-manager", "/controller_manager",
+                    "--param-file", controllers_yaml,
+                    "-p", "use_sim_time:=true"],
         output="screen",
     )
 
@@ -154,7 +156,9 @@ def generate_launch_description():
         executable="spawner",
         arguments=["diff_drive_controller", 
                    "--controller-manager", 
-                   "/controller_manager"
+                   "/controller_manager",
+                   "--param-file", controllers_yaml,
+                   "-p", "use_sim_time:=true"
                    ],
         output="screen",
     )   
