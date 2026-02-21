@@ -4,9 +4,7 @@
 [submodule "ros2_src/zed-ros2-wrapper"]
 	path = ros2_src/zed-ros2-wrapper
 	url = https://github.com/stereolabs/zed-ros2-wrapper.git
-[submodule "ros2_src/zed-ros2-examples"]
-	path = ros2_src/zed-ros2-examples
-	url = https://github.com/stereolabs/zed-ros2-examples.git
-[submodule "ros2_src/ros_odrive"]
-	path = ros2_src/ros_odrive
-	url = https://github.com/odriverobotics/ros_odrive.git
+[submodule "ros2_src/moveit2"]
+	path = ros2_src/moveit2
+	url = https://github.com/BroncoSpace-BILLEE/moveit2.git
+	branch = humble
