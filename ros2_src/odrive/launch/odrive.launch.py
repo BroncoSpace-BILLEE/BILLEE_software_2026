@@ -33,10 +33,10 @@ def generate_launch_description():
         description="ODrive node ID on the CAN bus (0-63)"
     )
 
-    cmd_vel_topic_arg = DeclareLaunchArgument(
-        "cmd_vel_topic",
-        default_value="/cmd_vel",
-        description="Topic name for geometry_msgs/Twist velocity commands"
+    joint_topic_arg = DeclareLaunchArgument(
+        "joint_state_topic",
+        default_value="/joint_wheel_l1",
+        description="Topic name for individual motor commands"
     )
 
     cmd_vel_scale_arg = DeclareLaunchArgument(
@@ -62,7 +62,7 @@ def generate_launch_description():
     return LaunchDescription([
         can_interface_arg,
         node_id_arg,
-        cmd_vel_topic_arg,
+        joint_topic_arg
         cmd_vel_scale_arg,
         odrive_node,
     ])
