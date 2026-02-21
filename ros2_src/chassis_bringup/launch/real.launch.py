@@ -69,6 +69,7 @@ def generate_launch_description():
         parameters=[
             {"robot_description": robot_description},
             controllers_yaml,
+            {"use_sim_time": False},  # override controllers.yaml (which sets true for Gazebo)
         ],
         output="screen",
     )
