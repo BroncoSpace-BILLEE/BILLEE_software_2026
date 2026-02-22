@@ -5,6 +5,7 @@
     "context": "../.."
   },
 
+  "remoteUser": "ros_user",
 
   "initializeCommand": "xhost + || true",
 
@@ -35,7 +36,9 @@
 		"XDG_RUNTIME_DIR": "${localEnv:XDG_RUNTIME_DIR}"
   },
 
-  "postStartCommand": "bash -c 'source /opt/ros/${ROS_DISTRO}/setup.bash && colcon build --packages-skip-regex ^zed --symlink-install --parallel-workers $(nproc)'",
+  //"postStartCommand": "bash -c 'source /opt/ros/${ROS_DISTRO}/setup.bash && colcon build --packages-skip-regex ^zed --symlink-install --parallel-workers $(nproc)'",
+
+  "postCreateCommand": "bash -lc \"grep -qxF 'source /opt/ros/humble/setup.bash' /home/ros_user/.bashrc || echo 'source /opt/ros/humble/setup.bash' >> /home/ros_user/.bashrc; grep -qxF 'if [ -f ~/ros2_ws/install/setup.bash ]; then source ~/ros2_ws/install/setup.bash; fi' /home/ros_user/.bashrc || echo 'if [ -f ~/ros2_ws/install/setup.bash ]; then source ~/ros2_ws/install/setup.bash; fi' >> /home/ros_user/.bashrc\"",
 
   "customizations": {
     "vscode": {
@@ -48,7 +51,8 @@
       ],
       "settings": {
         "files.eol": "\n",
-        "editor.wordWrap": "on"
+        "editor.wordWrap": "on",
+        "terminal.integrated.defaultProfile.linux": "bash"
       }
     }
   }
