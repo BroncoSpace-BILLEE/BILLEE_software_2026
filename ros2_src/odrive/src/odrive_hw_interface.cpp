@@ -1,4 +1,5 @@
 #include "odrive/odrive_hw_interface.hpp"
+#include "odrive/odrive_can_utils.hpp"
 #include "odrive/Constants.hpp"
 
 #include <hardware_interface/types/hardware_interface_type_values.hpp>
@@ -7,10 +8,6 @@
 
 #include <linux/can.h>
 #include <linux/can/raw.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-#include <net/if.h>
 #include <unistd.h>
 #include <cerrno>
 #include <cstring>
@@ -70,8 +67,8 @@ hardware_interface::CallbackReturn ODriveSystemInterface::on_init(
 hardware_interface::CallbackReturn ODriveSystemInterface::on_configure(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
-  // Open the CAN socket
-  sock_ = open_can_socket(can_interface_);
+  // Open the CAN socket using shared utility
+  sock_ = ODriveCAN::open_can_socket(can_interface_);
   if (sock_ < 0) {
     RCLCPP_ERROR(rclcpp::get_logger("ODriveSystemInterface"),
       "\n"
@@ -104,7 +101,7 @@ hardware_interface::CallbackReturn ODriveSystemInterface::on_activate(
       "[%s] Requesting CLOSED_LOOP_CONTROL (node_id %d on %s)...",
       j.name.c_str(), j.node_id, can_interface_.c_str());
 
-    if (!send_set_axis_state(j.node_id, CLOSED_LOOP_CONTROL_STATE)) {
+    if (!ODriveCAN::send_set_axis_state(sock_, j.node_id, CLOSED_LOOP_CONTROL_STATE)) {
       RCLCPP_ERROR(rclcpp::get_logger("ODriveSystemInterface"),
         "[%s] FAILED to send Set_Axis_State to node_id %d – "
         "check CAN wiring and that the ODrive is powered on",
@@ -114,7 +111,7 @@ hardware_interface::CallbackReturn ODriveSystemInterface::on_activate(
       continue;  // try remaining motors
     }
 
-    if (wait_for_axis_state(j.node_id, CLOSED_LOOP_CONTROL_STATE, 5000)) {
+    if (ODriveCAN::wait_for_axis_state(sock_, j.node_id, CLOSED_LOOP_CONTROL_STATE, 5000)) {
       RCLCPP_INFO(rclcpp::get_logger("ODriveSystemInterface"),
         "[%s] node_id %d => CLOSED_LOOP_CONTROL  [OK]", j.name.c_str(), j.node_id);
       j.connected = true;
@@ -167,7 +164,7 @@ hardware_interface::CallbackReturn ODriveSystemInterface::on_deactivate(
 {
   // Stop all motors (send zero velocity)
   for (auto & j : joints_) {
-    send_set_input_vel(j.node_id, 0.0f, 0.0f);
+    ODriveCAN::send_set_input_vel(sock_, j.node_id, 0.0f, 0.0f);
   }
 
   // Stop reader thread
@@ -255,9 +252,11 @@ hardware_interface::return_type ODriveSystemInterface::write(
   const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
 {
   for (auto & j : joints_) {
-    // ros2_control gives us rad/s; ODrive wants turns/s
-    float vel_turns = static_cast<float>(j.cmd_velocity * j.cmd_vel_scale) / (2.0f * M_PI);
-    if (!send_set_input_vel(j.node_id, vel_turns, 0.0f)) {
+    // ros2_control gives us rad/s; convert to turns/s
+    float vel_turns = ODriveCAN::rad_per_sec_to_turns_per_sec(
+      static_cast<float>(j.cmd_velocity * j.cmd_vel_scale));
+    
+    if (!ODriveCAN::send_set_input_vel(sock_, j.node_id, vel_turns, 0.0f)) {
       j.write_fail_count++;
       if (j.write_fail_count == 1 || j.write_fail_count % 1000 == 0) {
         RCLCPP_ERROR(rclcpp::get_logger("ODriveSystemInterface"),
@@ -278,75 +277,8 @@ hardware_interface::return_type ODriveSystemInterface::write(
 }
 
 // ---------------------------------------------------------------------------
-// CAN helpers (same protocol as your odrive.cpp)
+// CAN frame processing (background thread)
 // ---------------------------------------------------------------------------
-
-int ODriveSystemInterface::open_can_socket(const std::string & ifname)
-{
-  int s = socket(PF_CAN, SOCK_RAW, CAN_RAW);
-  if (s < 0) return -1;
-
-  struct ifreq ifr;
-  std::strncpy(ifr.ifr_name, ifname.c_str(), IFNAMSIZ - 1);
-  ifr.ifr_name[IFNAMSIZ - 1] = '\0';
-  if (ioctl(s, SIOCGIFINDEX, &ifr) < 0) { close(s); return -1; }
-
-  struct sockaddr_can addr{};
-  addr.can_family  = AF_CAN;
-  addr.can_ifindex = ifr.ifr_ifindex;
-  if (bind(s, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr)) < 0) {
-    close(s);
-    return -1;
-  }
-  return s;
-}
-
-uint32_t ODriveSystemInterface::make_can_id(uint8_t node_id, uint8_t cmd_id)
-{
-  return ((static_cast<uint32_t>(node_id) << 5) | static_cast<uint32_t>(cmd_id)) & CAN_SFF_MASK;
-}
-
-bool ODriveSystemInterface::send_set_axis_state(uint8_t node_id, uint32_t requested_state)
-{
-  struct can_frame frame{};
-  frame.can_id  = make_can_id(node_id, AXIS_STATE_CMD_ID);
-  frame.can_dlc = 4;
-  std::memcpy(frame.data, &requested_state, 4);
-  return ::write(sock_, &frame, sizeof(frame)) == sizeof(frame);
-}
-
-bool ODriveSystemInterface::send_set_input_vel(uint8_t node_id, float vel, float torque_ff)
-{
-  struct can_frame frame{};
-  frame.can_id  = make_can_id(node_id, SET_INPUT_VEL);
-  frame.can_dlc = 8;
-  std::memcpy(&frame.data[0], &vel, sizeof(float));
-  std::memcpy(&frame.data[4], &torque_ff, sizeof(float));
-  return ::write(sock_, &frame, sizeof(frame)) == sizeof(frame);
-}
-
-bool ODriveSystemInterface::wait_for_axis_state(
-  uint8_t node_id, uint8_t desired_state, int timeout_ms)
-{
-  auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeout_ms);
-  uint32_t hb_id = make_can_id(node_id, HEARTBEAT_CMD_ID);
-
-  while (std::chrono::steady_clock::now() < deadline) {
-    struct can_frame frame{};
-    fd_set readfds;
-    FD_ZERO(&readfds);
-    FD_SET(sock_, &readfds);
-    struct timeval tv{0, 100000};  // 100 ms
-    int rv = select(sock_ + 1, &readfds, nullptr, nullptr, &tv);
-    if (rv > 0 && FD_ISSET(sock_, &readfds)) {
-      ssize_t n = ::read(sock_, &frame, sizeof(frame));
-      if (n >= 0 && (frame.can_id & CAN_SFF_MASK) == hb_id && frame.can_dlc >= 5) {
-        if (frame.data[4] == desired_state) return true;
-      }
-    }
-  }
-  return false;
-}
 
 void ODriveSystemInterface::can_read_loop()
 {
@@ -381,8 +313,8 @@ void ODriveSystemInterface::process_can_frame(const struct can_frame & frame)
       float pos_turns = 0.0f, vel_turns = 0.0f;
       std::memcpy(&pos_turns, &frame.data[0], sizeof(float));
       std::memcpy(&vel_turns, &frame.data[4], sizeof(float));
-      j.hw_position = turns_to_radians(pos_turns);
-      j.hw_velocity = turns_per_sec_to_rad_per_sec(vel_turns);
+      j.hw_position = ODriveCAN::turns_to_radians(pos_turns);
+      j.hw_velocity = ODriveCAN::turns_per_sec_to_rad_per_sec(vel_turns);
       j.last_feedback_time = std::chrono::steady_clock::now();
       if (!j.connected) {
         RCLCPP_INFO(rclcpp::get_logger("ODriveSystemInterface"),
@@ -393,25 +325,6 @@ void ODriveSystemInterface::process_can_frame(const struct can_frame & frame)
       return;
     }
   }
-}
-
-// ---------------------------------------------------------------------------
-// Unit conversions
-// ---------------------------------------------------------------------------
-
-float ODriveSystemInterface::meters_per_sec_to_turns_per_sec(float mps) const
-{
-  return mps / (static_cast<float>(kWheelRadius) * 2.0f * static_cast<float>(M_PI));
-}
-
-float ODriveSystemInterface::turns_to_radians(float turns) const
-{
-  return turns * 2.0f * static_cast<float>(M_PI);
-}
-
-float ODriveSystemInterface::turns_per_sec_to_rad_per_sec(float tps) const
-{
-  return tps * 2.0f * static_cast<float>(M_PI);
 }
 
 }  // namespace odrive

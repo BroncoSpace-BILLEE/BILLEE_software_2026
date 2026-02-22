@@ -7,6 +7,7 @@
 #include <hardware_interface/types/hardware_interface_return_values.hpp>
 #include <rclcpp/macros.hpp>
 #include <rclcpp_lifecycle/state.hpp>
+#include "odrive/odrive_can_utils.hpp"
 
 #include <atomic>
 #include <chrono>
@@ -74,18 +75,9 @@ public:
     const rclcpp::Time & time, const rclcpp::Duration & period) override;
 
 private:
-  // ---- CAN helpers (same protocol as odrive.cpp) ----
-  int  open_can_socket(const std::string & ifname);
-  static uint32_t make_can_id(uint8_t node_id, uint8_t cmd_id);
-  bool send_set_axis_state(uint8_t node_id, uint32_t requested_state);
-  bool send_set_input_vel(uint8_t node_id, float vel, float torque_ff);
-  bool wait_for_axis_state(uint8_t node_id, uint8_t desired_state, int timeout_ms);
+  // ---- CAN frame processing (runs in background thread) ----
   void can_read_loop();
   void process_can_frame(const ::can_frame & frame);
-
-  float meters_per_sec_to_turns_per_sec(float mps) const;
-  float turns_to_radians(float turns) const;
-  float turns_per_sec_to_rad_per_sec(float tps) const;
 
   // ---- Per-joint data ----
   struct JointData {

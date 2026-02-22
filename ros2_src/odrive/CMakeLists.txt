@@ -25,11 +25,19 @@ target_include_directories(odrive PUBLIC
   $<INSTALL_INTERFACE:include>)
 target_compile_features(odrive PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
 
+# --- Shared CAN utility library ---
+add_library(odrive_can_utils SHARED src/odrive_can_utils.cpp)
+target_include_directories(odrive_can_utils PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+target_compile_features(odrive_can_utils PUBLIC cxx_std_17)
+
 # --- ros2_control hardware interface plugin ---
 add_library(odrive_hw_interface SHARED src/odrive_hw_interface.cpp)
 target_include_directories(odrive_hw_interface PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
+target_link_libraries(odrive_hw_interface odrive_can_utils)
 ament_target_dependencies(odrive_hw_interface
   rclcpp
   rclcpp_lifecycle
@@ -41,7 +49,7 @@ pluginlib_export_plugin_description_file(hardware_interface odrive_hw_plugin.xml
 install(TARGETS odrive
   DESTINATION lib/${PROJECT_NAME})
 
-install(TARGETS odrive_hw_interface
+install(TARGETS odrive_can_utils odrive_hw_interface
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin)
@@ -66,6 +74,6 @@ install(DIRECTORY launch
 )
 
 ament_export_dependencies(hardware_interface pluginlib rclcpp rclcpp_lifecycle)
-ament_export_libraries(odrive_hw_interface)
+ament_export_libraries(odrive_hw_interface odrive_can_utils)
 
 ament_package()
