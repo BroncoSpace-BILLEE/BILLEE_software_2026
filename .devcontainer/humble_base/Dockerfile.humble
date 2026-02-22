@@ -115,6 +115,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   ros-humble-foxglove-bridge \
   ros-humble-zed-msgs \
   ros-humble-nmea-msgs \
+  ros-humble-rmw-cyclonedds-cpp \
   && rm -rf /var/lib/apt/lists/*
 
 # Install the ZED SDK
@@ -125,17 +126,17 @@ RUN  add-apt-repository ppa:lely/ppa
 
 #create a virtual environment for the ZED SDK and ROS2 packages
 RUN apt-get update && apt-get install --no-install-recommends -y \
-python3-opencv \ 
+python3-opencv \
 python3.10-venv \
 && rm -rf /var/lib/apt/lists/*
 
 RUN apt-get update && apt-get install --no-install-recommends -y \
 liblely-coapp-dev \
-liblely-co-tools \ 
+liblely-co-tools \
 python3-dcf-tools \
 && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update && apt-get install --no-install-recommends -y \ 
+RUN apt-get update && apt-get install --no-install-recommends -y \
 can-utils \
 usbutils \
 kmod \
@@ -148,7 +149,7 @@ RUN apt-get update -y || true && \
   chmod -R o+rx /usr/local/lib/python3.10/dist-packages && \
   wget -q -O ZED_SDK_Linux_Ubuntu.run ${ZED_SDK_URL} && \
   chmod +x ZED_SDK_Linux_Ubuntu.run && \
-  ./ZED_SDK_Linux_Ubuntu.run -- silent  skip_cuda && \
+  ./ZED_SDK_Linux_Ubuntu.run -- silent skip_cuda --nodiskspace && \
   ln -sf /lib/x86_64-linux-gnu/libusb-1.0.so.0 /usr/lib/x86_64-linux-gnu/libusb-1.0.so && \
   rm ZED_SDK_Linux_Ubuntu.run && \
   rm -rf /var/lib/apt/lists/*
