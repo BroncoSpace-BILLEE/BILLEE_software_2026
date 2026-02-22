@@ -125,6 +125,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 liblely-coapp-dev \
 liblely-co-tools \ 
 python3-dcf-tools \
+python3-serial \
 && rm -rf /var/lib/apt/lists/*
 
 RUN apt-get update && apt-get install --no-install-recommends -y \ 
