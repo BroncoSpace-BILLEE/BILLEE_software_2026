@@ -1,0 +1,11 @@
+# Default initial positions for arm_model's ros2_control fake system
+
+initial_positions:
+  joint_axis_1: 0
+  joint_axis_2: 0
+  joint_axis_3: 0
+  joint_axis_4: 0
+  joint_axis_5: 0
+  joint_finger_1: 0
+  joint_finger_2: 0
+  joint_finger_3: 0

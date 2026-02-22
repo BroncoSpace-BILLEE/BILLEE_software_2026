@@ -1,6 +1,5 @@
 {
   "name": "humble_dev-x86",
-  "remoteUser": "ros_user",
    "build": {
     "dockerfile": "Dockerfile.humble",
     "context": "../.."
@@ -13,12 +12,17 @@
     "--gpus", "all",
     "--net=host",
     "--ipc=host",
-    "--device=/dev/input",
 	  "--volume", "/tmp/.X11-unix:/tmp/.X11-unix:rw",
-
+	  "--volume", "/dev:/dev",
+    "--device=/dev/bus/usb:/dev/bus/usb", //include zed 2 device
+    "--device-cgroup-rule", "c 240:* rmw",
+    "--device-cgroup-rule", "c 81:* rmw",
     "--env", "NVIDIA_VISIBLE_DEVICES=all",
     "--env", "NVIDIA_DRIVER_CAPABILITIES=all",
-    "--env", "QT_X11_NO_MITSHM=1"
+    "--env", "QT_X11_NO_MITSHM=1",
+    "--env", "__GLX_VENDOR_LIBRARY_NAME=nvidia",
+    "--env", "__NV_PRIME_RENDER_OFFLOAD=1",
+    "--env", "__VK_LAYER_NV_optimus=NVIDIA_only"
   ],
 
   "workspaceMount": "source=${localWorkspaceFolder}/ros2_src,target=/home/ros_user/ros2_ws/src,type=bind,consistency=cached",
@@ -31,9 +35,7 @@
 		"XDG_RUNTIME_DIR": "${localEnv:XDG_RUNTIME_DIR}"
   },
 
-
-  "postCreateCommand": "bash -lc \"grep -qxF 'source /opt/ros/humble/setup.bash' /home/ros_user/.bashrc || echo 'source /opt/ros/humble/setup.bash' >> /home/ros_user/.bashrc; grep -qxF 'if [ -f ~/ros2_ws/install/setup.bash ]; then source ~/ros2_ws/install/setup.bash; fi' /home/ros_user/.bashrc || echo 'if [ -f ~/ros2_ws/install/setup.bash ]; then source ~/ros2_ws/install/setup.bash; fi' >> /home/ros_user/.bashrc\"",
-
+  "postStartCommand": "bash -c 'source /opt/ros/${ROS_DISTRO}/setup.bash && colcon build --packages-skip-regex ^zed --symlink-install --parallel-workers $(nproc)'",
 
   "customizations": {
     "vscode": {

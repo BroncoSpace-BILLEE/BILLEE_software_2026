@@ -9,6 +9,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-rosdep \
     git \
     sudo \
+    ros-humble-foxglove-bridge \
+    ros-humble-foxglove-msgs \
+    python3-gi \
+    gir1.2-gstreamer-1.0 \
+    gir1.2-gst-plugins-base-1.0 \
+    gstreamer1.0-tools \
+    gstreamer1.0-plugins-base \
+    gstreamer1.0-plugins-good \
+    gstreamer1.0-plugins-bad \
+    gstreamer1.0-plugins-ugly \
     && rm -rf /var/lib/apt/lists/*
 
 # ---- Create a non-root user (optional but recommended) ----
@@ -29,6 +39,21 @@ RUN mkdir -p ${WS} && chown -R ${USERNAME}:${USERNAME} ${WS}
 COPY ./entrypoint.jetson.sh /entrypoint.jetson.sh
 RUN chmod +x /entrypoint.jetson.sh
 RUN mkdir -p /home/ros_user/ros2_ws/src && chown -R ros_user:ros_user /home/ros_user/ros2_ws
+
+
+RUN  add-apt-repository ppa:lely/ppa
+
+# utils for debugging CAN devices
+RUN apt-get update && apt-get install --no-install-recommends -y \ 
+can-utils \
+usbutils \
+kmod \
+&& rm -rf /var/lib/apt/lists/* 
+
+RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.bash && \
+  apt-get update -y || true && rosdep update && \
+  rosdep install --from-paths src --ignore-src -r -y" && \ 
+  rm -rf /var/lib/apt/lists/*
 
 USER ${USERNAME}
 WORKDIR ${WS}
