@@ -9,30 +9,6 @@ ARG ZED_SDK_MAJOR=5
 ARG ZED_SDK_MINOR=1
 ARG ZED_SDK_PATCH=0
 
-# install bootstrap tools
-RUN apt-get update && apt-get install --no-install-recommends -y \
-    build-essential \
-    git \
-    python3-colcon-common-extensions \
-    python3-colcon-mixin \
-    python3-rosdep \
-    python3-vcstool \
-    iproute2 \
-    ros-humble-joint-state-publisher-gui \
-    ros-humble-xacro \
-    ros-humble-ros-gz \
-    ros-humble-gz-ros2-control \
-    ros-humble-ros2-controllers \
-    ros-humble-controller-manager \
-    ros-humble-gz-ros2-control \
-    ros-humble-ros2controlcli \
-    ros-humble-ros-ign-bridge \
-    ros-humble-joy-linux \
-    ros-humble-foxglove-bridge \
-    ros-humble-foxglove-msgs \
-    ros-humble-rmw-cyclonedds-cpp \
-    && rm -rf /var/lib/apt/lists/*
-    
 # create a non-root user
 ARG USERNAME=ros_user
 ARG USER_UID=1000
@@ -40,6 +16,14 @@ ARG USER_GID=1000
 
 ARG ROS2_DIST=humble 
 ARG DEBIAN_FRONTEND=noninteractive
+
+# Create the user
+RUN groupadd --gid $USER_GID $USERNAME \
+    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
+    && apt-get update \
+    && apt-get install -y sudo \
+    && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
+    && chmod 0440 /etc/sudoers.d/$USERNAME
 
 ENV NVIDIA_DRIVER_CAPABILITIES \
     ${NVIDIA_DRIVER_CAPABILITIES:+$NVIDIA_DRIVER_CAPABILITIES,}compute,video,utility
@@ -178,20 +162,31 @@ ENV ROS_DISTRO ${ROS2_DIST}
 
 WORKDIR /home/ros_user/ros2_ws/
 
-COPY ../ros2_src ./src
+COPY ros2_src ./src
 
+RUN apt-get update && apt-get install --no-install-recommends -y \
+  python3-serial \
+  && rm -rf /var/lib/apt/lists/*
 
 RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.bash && \
   apt-get update -y || true && rosdep update && \
-  rosdep install --from-paths src --ignore-src -r -y" && \ 
+  rosdep install --from-paths src --ignore-src -r -y \
+    --skip-keys=pyserial \
+    --skip-keys=warehouse_ros_mongo" && \
   rm -rf /var/lib/apt/lists/*
 
 
 
 ENV RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 
+# Set ownership of ros_user home directory
+RUN chown -R ros_user:ros_user /home/ros_user
+
 COPY .devcontainer/humble_base/entrypoint.humble.sh /entrypoint.humble.sh
 RUN chmod +x /entrypoint.humble.sh
+
+# Switch to ros_user
+USER ros_user
 
 ENTRYPOINT ["/entrypoint.humble.sh"]
 CMD ["bash"]

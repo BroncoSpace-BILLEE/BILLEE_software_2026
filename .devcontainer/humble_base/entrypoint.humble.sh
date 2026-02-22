@@ -7,9 +7,8 @@ if [ -f "/opt/ros/humble/setup.bash" ]; then
 fi
 
 # Source overlay workspace if it exists
-if [ -f "/ws/install/setup.bash" ]; then
-  source /ws/install/setup.bash
+if [ -f "/home/ros_user/ros2_ws/install/setup.bash" ]; then
+  source /home/ros_user/ros2_ws/install/setup.bash
 fi
 
-exec "$@"
 
