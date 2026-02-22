@@ -236,13 +236,13 @@ private:
 
   void joint_state_callback(const sensor_msgs::msg::JointState::SharedPtr msg)
   {
-    float vel = static_cast<float>(msg->velocity[1] * cmd_vel_scale_);
+    float vel = static_cast<float>(msg->velocity * cmd_vel_scale_);
     vel = meters_per_sec_to_turns_per_sec(vel);
 
     if (!send_set_input_vel(sock_, node_id_, vel, 0.0f)) {
       RCLCPP_ERROR(this->get_logger(), "Failed to send Set_Input_Vel from joint state topic: %s", joint_state_topic_.c_str());
     } else {
-      RCLCPP_DEBUG(this->get_logger(), "joint_state_vel -> velocity %.6f (linear.x %.3f)", vel, msg->velocity[1]);
+      RCLCPP_DEBUG(this->get_logger(), "joint_state_vel -> velocity %.6f (linear.x %.3f)", vel, msg->velocity);
     }
   }
 
