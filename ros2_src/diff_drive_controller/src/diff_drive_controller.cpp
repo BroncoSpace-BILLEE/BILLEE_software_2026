@@ -47,8 +47,8 @@ private:
     // v_right = (2*v + w*L) / 2
     // where v = linear velocity, w = angular velocity, L = wheel separation
     
-    double left_vel = linear_vel - (angular_vel * wheel_separation_ / 2.0);
-    double right_vel = linear_vel + (angular_vel * wheel_separation_ / 2.0);
+    double left_vel = linear_vel - (-angular_vel * wheel_separation_ / 2.0);
+    double right_vel = linear_vel + (-angular_vel * wheel_separation_ / 2.0);
     
     // Convert linear velocities to angular velocities (rad/s)
     // omega = v / r
@@ -68,9 +68,9 @@ private:
     wheel_l1_pub_->publish(create_joint_state("joint_wheel_l1", left_wheel_speed));
     wheel_l2_pub_->publish(create_joint_state("joint_wheel_l2", left_wheel_speed));
     wheel_l3_pub_->publish(create_joint_state("joint_wheel_l3", left_wheel_speed));
-    wheel_r1_pub_->publish(create_joint_state("joint_wheel_r1", right_wheel_speed));
-    wheel_r2_pub_->publish(create_joint_state("joint_wheel_r2", right_wheel_speed));
-    wheel_r3_pub_->publish(create_joint_state("joint_wheel_r3", right_wheel_speed));
+    wheel_r1_pub_->publish(create_joint_state("joint_wheel_r1", -right_wheel_speed));
+    wheel_r2_pub_->publish(create_joint_state("joint_wheel_r2", -right_wheel_speed));
+    wheel_r3_pub_->publish(create_joint_state("joint_wheel_r3", -right_wheel_speed));
   }
 
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr twist_sub_;
