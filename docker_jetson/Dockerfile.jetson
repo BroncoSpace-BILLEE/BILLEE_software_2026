@@ -1,6 +1,31 @@
 # Jetson / JetPack 6.x (aarch64) Isaac ROS Dev Base
 FROM nvcr.io/nvidia/isaac/ros:aarch64-ros2_humble_4c0c55dddd2bbcc3e8d5f9753bee634c
 
+ARG UBUNTU_MAJOR=22
+ARG UBUNTU_MINOR=04
+ARG CUDA_MAJOR=13
+ARG CUDA_MINOR=0
+ARG CUDA_PATCH=0
+ARG ZED_SDK_MAJOR=5
+ARG ZED_SDK_MINOR=1
+ARG ZED_SDK_PATCH=0
+
+ENV NVIDIA_DRIVER_CAPABILITIES \
+    ${NVIDIA_DRIVER_CAPABILITIES:+$NVIDIA_DRIVER_CAPABILITIES,}compute,video,utility
+    
+
+ENV ZED_SDK_URL="https://download.stereolabs.com/zedsdk/${ZED_SDK_MAJOR}.${ZED_SDK_MINOR}.${ZED_SDK_PATCH}/cu${CUDA_MAJOR}/ubuntu${UBUNTU_MAJOR}"
+
+# Check that this SDK exists
+RUN echo "SDK link: $ZED_SDK_URL"
+RUN if [ "$(curl -L -I "${ZED_SDK_URL}" -o /dev/null -s -w '%{http_code}\n' | head -n 1)" = "200" ]; then \
+        echo "The URL points to something."; \
+    else \
+        echo "The URL does not point to a .run file or the file does not exist."; \
+        exit 1; \
+    fi
+
+
 SHELL ["/bin/bash", "-lc"]
 
 # ---- Basic utilities you typically want for development/runtime ----
@@ -20,6 +45,31 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gstreamer1.0-plugins-bad \
     gstreamer1.0-plugins-ugly \
     && rm -rf /var/lib/apt/lists/*
+
+# Install the ZED SDK
+RUN echo "CUDA Version $CUDA_VERSION" > /usr/local/cuda/version.txt
+
+#create a virtual environment for the ZED SDK and ROS2 packages
+RUN apt-get update && apt-get install --no-install-recommends -y \
+python3-opencv \ 
+python3.10-venv \
+&& rm -rf /var/lib/apt/lists/*
+
+# Setup the ZED SDK
+RUN apt-get update -y || true && \
+  apt-get install --no-install-recommends dialog bash-completion lsb-release wget less udev sudo  build-essential cmake zstd python3 python3-pip libpng-dev libgomp1 -y && \
+  python3 -m pip install --upgrade pip; python3 -m pip install numpy opencv-python-headless && \
+  chmod -R o+rx /usr/local/lib/python3.10/dist-packages && \
+  wget -q -O ZED_SDK_Linux_Ubuntu.run ${ZED_SDK_URL} && \
+  chmod +x ZED_SDK_Linux_Ubuntu.run && \
+  ./ZED_SDK_Linux_Ubuntu.run -- silent  skip_cuda && \
+  ln -sf /lib/x86_64-linux-gnu/libusb-1.0.so.0 /usr/lib/x86_64-linux-gnu/libusb-1.0.so && \
+  rm ZED_SDK_Linux_Ubuntu.run && \
+  rm -rf /var/lib/apt/lists/*
+
+# Make /usr/local/zed readable and accessible for ros_user
+RUN chmod o+rx /usr
+RUN chmod -R o+rx /usr/local/zed
 
 # ---- Create a non-root user (optional but recommended) ----
 ARG USERNAME=ros_user
