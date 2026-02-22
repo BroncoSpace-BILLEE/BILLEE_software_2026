@@ -188,7 +188,7 @@ private:
 
   // Members
   rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub_;
-  std::string can_interface_ = "can0"; //should be fed into container
+  std::string can_interface_ = "can0";
   int can_socket_ = -1;
   uint8_t node_id_ = 1;
   int max_velocity_ = 1000; //TODO: confirm from EDS what max velocity should be (should be in pulses per second)

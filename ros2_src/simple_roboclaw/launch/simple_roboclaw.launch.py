@@ -11,7 +11,7 @@ def generate_launch_description():
     
     launch_joy_arg = DeclareLaunchArgument(
         'launch_joy',
-        default_value='true',
+        default_value='false',
         description='Launch joy_node (set to False if already running)'
     )
     
