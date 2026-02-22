@@ -3,6 +3,9 @@
 
 <xacro:include filename="$(find chassis_description)/urdf/materials.xacro" />
 <xacro:arg name="controllers_yaml" default="" />
+<xacro:arg name="controllers_sim_yaml" default="" />
+<xacro:arg name="use_sim" default="true" />
+<xacro:arg name="can_interface" default="can0" />
 <!--xacro:include filename="$(find chassis_description)/urdf/chassis_model.trans" /-->
 <!--xacro:include filename="$(find chassis_description)/urdf/chassis_model.gazebo" /-->
 <link name="base_link">
@@ -306,58 +309,65 @@
   <axis xyz="0.0 1.0 0.0"/>
 </joint>
 
-<!-- ros2_control: declare command/state interfaces for wheel joints -->
-<ros2_control name="ChassisSystem" type="system">
-  <hardware>
-    <!-- Gazebo Sim hardware interface -->
-    <plugin>gz_ros2_control/GazeboSimSystem</plugin>
-  </hardware>
-
-  <joint name="joint_wheel_r1">
+<!-- ============ ros2_control joint macro ============ -->
+<xacro:macro name="wheel_joint_interfaces" params="name">
+  <joint name="${name}">
     <command_interface name="velocity"/>
     <state_interface name="velocity"/>
     <state_interface name="position"/>
   </joint>
+</xacro:macro>
 
-  <joint name="joint_wheel_r2">
-    <command_interface name="velocity"/>
-    <state_interface name="velocity"/>
-    <state_interface name="position"/>
-  </joint>
+<!-- ============ Simulation hardware (Gazebo) ============ -->
+<xacro:if value="$(arg use_sim)">
+  <ros2_control name="ChassisSystem" type="system">
+    <hardware>
+      <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+    </hardware>
+    <xacro:wheel_joint_interfaces name="joint_wheel_r1"/>
+    <xacro:wheel_joint_interfaces name="joint_wheel_r2"/>
+    <xacro:wheel_joint_interfaces name="joint_wheel_r3"/>
+    <xacro:wheel_joint_interfaces name="joint_wheel_l1"/>
+    <xacro:wheel_joint_interfaces name="joint_wheel_l2"/>
+    <xacro:wheel_joint_interfaces name="joint_wheel_l3"/>
+  </ros2_control>
 
-  <joint name="joint_wheel_r3">
-    <command_interface name="velocity"/>
-    <state_interface name="velocity"/>
-    <state_interface name="position"/>
-  </joint>
+  <gazebo>
+    <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+      <robot_param>robot_description</robot_param>
+      <robot_param_node>robot_state_publisher</robot_param_node>
+      <parameters>$(arg controllers_yaml)</parameters>
+      <parameters>$(arg controllers_sim_yaml)</parameters>
+    </plugin>
+  </gazebo>
+</xacro:if>
 
-  <joint name="joint_wheel_l1">
-    <command_interface name="velocity"/>
-    <state_interface name="velocity"/>
-    <state_interface name="position"/>
-  </joint>
+<!-- ============ Real hardware (ODrive via CAN) ============ -->
+<xacro:unless value="$(arg use_sim)">
+  <xacro:macro name="odrive_joint" params="name node_id">
+    <joint name="${name}">
+      <param name="node_id">${node_id}</param>
+      <command_interface name="velocity"/>
+      <state_interface name="velocity"/>
+      <state_interface name="position"/>
+    </joint>
+  </xacro:macro>
 
-  <joint name="joint_wheel_l2">
-    <command_interface name="velocity"/>
-    <state_interface name="velocity"/>
-    <state_interface name="position"/>
-  </joint>
-
-  <joint name="joint_wheel_l3">
-    <command_interface name="velocity"/>
-    <state_interface name="velocity"/>
-    <state_interface name="position"/>
-  </joint>
-
-</ros2_control>
-
-<gazebo>
-  <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
-    <robot_param>robot_description</robot_param>
-    <robot_param_node>robot_state_publisher</robot_param_node>
-    <parameters>$(arg controllers_yaml)</parameters>
-  </plugin>
-</gazebo>
+  <ros2_control name="ODriveSystem" type="system">
+    <hardware>
+      <plugin>odrive/ODriveSystemInterface</plugin>
+      <param name="can_interface">$(arg can_interface)</param>
+    </hardware>
+    <!-- Right wheels -->
+    <xacro:odrive_joint name="joint_wheel_r1" node_id="2"/>
+    <xacro:odrive_joint name="joint_wheel_r2" node_id="3"/>
+    <xacro:odrive_joint name="joint_wheel_r3" node_id="7"/>
+    <!-- Left wheels -->
+    <xacro:odrive_joint name="joint_wheel_l1" node_id="4"/>
+    <xacro:odrive_joint name="joint_wheel_l2" node_id="5"/>
+    <xacro:odrive_joint name="joint_wheel_l3" node_id="6"/>
+  </ros2_control>
+</xacro:unless>
 
 
 </robot>

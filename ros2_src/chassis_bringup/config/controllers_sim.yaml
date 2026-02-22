@@ -1,0 +1,4 @@
+## Sim-only overrides – loaded ON TOP of controllers.yaml by the Gazebo plugin
+controller_manager:
+  ros__parameters:
+    use_sim_time: true

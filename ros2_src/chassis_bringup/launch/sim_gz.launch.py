@@ -79,11 +79,18 @@ def generate_launch_description():
         "controllers.yaml",
     ])
 
+    controllers_sim_yaml = PathJoinSubstitution([
+        FindPackageShare("chassis_bringup"),
+        "config",
+        "controllers_sim.yaml",
+    ])
+
     robot_description = ParameterValue(
     Command([
         "xacro", " ",
         xacro_path, " ",
-        "controllers_yaml:=", controllers_yaml
+        "controllers_yaml:=", controllers_yaml, " ",
+        "controllers_sim_yaml:=", controllers_sim_yaml
     ]),
     value_type=str,
     )
