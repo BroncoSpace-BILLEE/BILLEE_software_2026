@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-Launch file for ODrive CAN node.
+Launch file for multiple ODrive CAN nodes.
 
-This launch file starts the ODrive SocketCAN communication node with configurable
-parameters for CAN interface, node ID, and cmd_vel input.
+This launch file starts one ODrive SocketCAN communication node per motor with
+shared CAN interface and cmd_vel scaling but unique name, node ID, and
+joint_state_topic.
 
 Usage:
-  ros2 launch odrive odrive.launch.py
-  ros2 launch odrive odrive.launch.py can_interface:=can1 node_id:=1
+    ros2 launch odrive odrive.launch.py
+    ros2 launch odrive odrive.launch.py can_interface:=can1
     ros2 launch odrive odrive.launch.py cmd_vel_scale:=2.0
 """
 
@@ -27,42 +28,39 @@ def generate_launch_description():
         description="CAN network interface name (e.g., can0, can1)"
     )
 
-    node_id_arg = DeclareLaunchArgument(
-        "node_id",
-        default_value="0",
-        description="ODrive node ID on the CAN bus (0-63)"
-    )
-
-    cmd_vel_topic_arg = DeclareLaunchArgument(
-        "cmd_vel_topic",
-        default_value="/cmd_vel",
-        description="Topic name for geometry_msgs/Twist velocity commands"
-    )
-
     cmd_vel_scale_arg = DeclareLaunchArgument(
         "cmd_vel_scale",
         default_value="1.0",
         description="Scale factor applied to commanded velocity"
     )
 
-    # Create the ODrive CAN node
-    odrive_node = Node(
-        package="odrive",
-        executable="odrive",
-        name="odrive_can_node",
-        output="screen",
-        parameters=[
-            {"can_interface": LaunchConfiguration("can_interface")},
-            {"node_id": LaunchConfiguration("node_id")},
-            {"cmd_vel_topic": LaunchConfiguration("cmd_vel_topic")},
-            {"cmd_vel_scale": LaunchConfiguration("cmd_vel_scale")},
-        ],
-    )
+    odrive_nodes = [
+        {"name": "odrive_l1", "node_id": 3, "joint_state_topic": "/joint_wheel_l1"},
+        {"name": "odrive_l2", "node_id": 7, "joint_state_topic": "/joint_wheel_l2"},
+        {"name": "odrive_l3", "node_id": 2, "joint_state_topic": "/joint_wheel_l3"},
+        {"name": "odrive_r1", "node_id": 6, "joint_state_topic": "/joint_wheel_r1"},
+        {"name": "odrive_r2", "node_id": 4, "joint_state_topic": "/joint_wheel_r2"},
+        {"name": "odrive_r3", "node_id": 5, "joint_state_topic": "/joint_wheel_r3"},
+    ]
+
+    nodes = [
+        Node(
+            package="odrive",
+            executable="odrive",
+            name=odrive_config["name"],
+            output="screen",
+            parameters=[
+                {"can_interface": LaunchConfiguration("can_interface")},
+                {"node_id": odrive_config["node_id"]},
+                {"joint_state_topic": odrive_config["joint_state_topic"]},
+                {"cmd_vel_scale": LaunchConfiguration("cmd_vel_scale")},
+            ],
+        )
+        for odrive_config in odrive_nodes
+    ]
 
     return LaunchDescription([
         can_interface_arg,
-        node_id_arg,
-        cmd_vel_topic_arg,
         cmd_vel_scale_arg,
-        odrive_node,
+        *nodes,
     ])

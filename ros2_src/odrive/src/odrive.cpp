@@ -6,6 +6,7 @@
 #include "odrive/Constants.hpp"
 #include <thread>
 #include <atomic>
+#include <cmath>
 
 #include <linux/can.h>
 #include <linux/can/raw.h>
@@ -30,12 +31,12 @@ public:
   {
     this->declare_parameter<std::string>("can_interface", "can2");
     this->declare_parameter<int>("node_id", 0);
-    this->declare_parameter<std::string>("cmd_vel_topic", "/cmd_vel");
+    this->declare_parameter<std::string>("joint_state_topic", "/joint_wheel_l1");
     this->declare_parameter<double>("cmd_vel_scale", 1.0); // max is 1 rev/s
 
     this->get_parameter("can_interface", can_if_);
     this->get_parameter("node_id", node_id_);
-    this->get_parameter("cmd_vel_topic", cmd_vel_topic_);
+    this->get_parameter("joint_state_topic", joint_state_topic_);
     this->get_parameter("cmd_vel_scale", cmd_vel_scale_);
 
     RCLCPP_INFO(this->get_logger(), "Opening CAN interface: %s", can_if_.c_str());
@@ -60,10 +61,10 @@ public:
       }
     }
 
-    // Subscribe to cmd_vel topic (geometry_msgs::msg::Twist)
-    cmd_vel_sub_ = this->create_subscription<geometry_msgs::msg::Twist>(
-      cmd_vel_topic_, 10,
-      std::bind(&ODriveCanNode::cmd_vel_callback, this, std::placeholders::_1)
+    // Subscribe to joint_state topic (sensor_msgs::msg::JointState)
+    joint_state_sub_ = this->create_subscription<sensor_msgs::msg::JointState>(
+      joint_state_topic_, 10,
+      std::bind(&ODriveCanNode::joint_state_callback, this, std::placeholders::_1)
     );
 
     // Publisher for encoder estimates (position, velocity)
@@ -233,13 +234,21 @@ private:
     }
   }
 
-  void cmd_vel_callback(const geometry_msgs::msg::Twist::SharedPtr msg)
+  void joint_state_callback(const sensor_msgs::msg::JointState::SharedPtr msg)
   {
-    float vel = static_cast<float>(msg->linear.x * cmd_vel_scale_);
+    if (msg->velocity.empty()) {
+      RCLCPP_WARN(this->get_logger(), "Received JointState with empty velocity on %s", joint_state_topic_.c_str());
+      return;
+    }
+
+    double scaled_vel = msg->velocity.front() * cmd_vel_scale_;
+    float vel = static_cast<float>(scaled_vel);
+    vel = meters_per_sec_to_turns_per_sec(vel);
+
     if (!send_set_input_vel(sock_, node_id_, vel, 0.0f)) {
-      RCLCPP_ERROR(this->get_logger(), "Failed to send Set_Input_Vel from cmd_vel");
+      RCLCPP_ERROR(this->get_logger(), "Failed to send Set_Input_Vel from joint state topic: %s", joint_state_topic_.c_str());
     } else {
-      RCLCPP_DEBUG(this->get_logger(), "cmd_vel -> velocity %.6f (linear.x %.3f)", vel, msg->linear.x);
+      RCLCPP_DEBUG(this->get_logger(), "joint_state_vel -> velocity %.6f (input %.3f)", vel, scaled_vel);
     }
   }
 
@@ -281,15 +290,20 @@ private:
     return false;
   }
 
+  float meters_per_sec_to_turns_per_sec(float mps)
+  {
+    return mps / (.11f * 2 * M_PI);
+  }
+
   std::string can_if_ = "can2";
   int node_id_ = 0;
   int sock_ = -1;
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr enc_pub_;
   std::thread reader_thread_;
   std::atomic<bool> running_{false};
-  std::string cmd_vel_topic_ = "/cmd_vel";
+  std::string joint_state_topic_ = "/joint_wheel_l1";
   double cmd_vel_scale_ = 1.0;
-  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
+  rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_state_sub_;
 
 };
 

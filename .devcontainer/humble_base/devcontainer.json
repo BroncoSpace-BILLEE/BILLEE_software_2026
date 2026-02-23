@@ -17,12 +17,15 @@
     "--device=/dev/bus/usb:/dev/bus/usb", //include zed 2 device
     "--device-cgroup-rule", "c 240:* rmw",
     "--device-cgroup-rule", "c 81:* rmw",
+    "--device-cgroup-rule", "c 31:* rmw",
+    "--device=/dev/input",
     "--env", "NVIDIA_VISIBLE_DEVICES=all",
     "--env", "NVIDIA_DRIVER_CAPABILITIES=all",
     "--env", "QT_X11_NO_MITSHM=1",
     "--env", "__GLX_VENDOR_LIBRARY_NAME=nvidia",
     "--env", "__NV_PRIME_RENDER_OFFLOAD=1",
-    "--env", "__VK_LAYER_NV_optimus=NVIDIA_only"
+    "--env", "__VK_LAYER_NV_optimus=NVIDIA_only",
+    "--group-add=input"
   ],
 
   "workspaceMount": "source=${localWorkspaceFolder}/ros2_src,target=/home/ros_user/ros2_ws/src,type=bind,consistency=cached",
