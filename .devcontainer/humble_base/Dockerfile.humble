@@ -115,6 +115,16 @@ RUN echo "CUDA Version $CUDA_VERSION" > /usr/local/cuda/version.txt
 # add PPA for lely canopen
 RUN  add-apt-repository ppa:lely/ppa
 
+RUN groupadd --gid ${USER_GID} ${USERNAME} \
+    && useradd --uid ${USER_UID} --gid ${USER_GID} -m -s /bin/bash ${USERNAME} \
+    && mkdir -p /home/${USERNAME}/ros2_ws/src \
+    && chown -R ${USERNAME}:${USERNAME} /home/${USERNAME}/ros2_ws
+
+RUN apt-get update && apt-get install -y sudo \
+    && usermod -aG sudo ros_user \
+    && echo "ros_user ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ros_user \
+    && chmod 0440 /etc/sudoers.d/ros_user
+
 #create a virtual environment for the ZED SDK and ROS2 packages
 RUN apt-get update && apt-get install --no-install-recommends -y \
 python3-opencv \ 
