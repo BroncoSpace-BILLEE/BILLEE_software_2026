@@ -45,6 +45,7 @@ exec docker run -it \
   $VIDEO_DEVS \
   --network=host \
   --ipc=host \
+  --cap-add=NET_ADMIN \
   $DEV_ARG \
   --runtime nvidia \
   -e "DISPLAY=${DISPLAY}" \
