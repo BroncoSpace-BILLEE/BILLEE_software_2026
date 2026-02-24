@@ -42,10 +42,10 @@ VIDEO_DEVS=""
 exec docker run -it \
   --name "${CONTAINER_NAME}" \
   --mount "type=bind,source=${HOST_WS},target=/home/ros_user/ros2_ws/src" \
-  ${VIDEO_DEVS} \
+  $VIDEO_DEVS \
   --network=host \
   --ipc=host \
-  ${DEV_ARG} \
+  $DEV_ARG \
   --runtime nvidia \
   -e "DISPLAY=${DISPLAY}" \
   -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
