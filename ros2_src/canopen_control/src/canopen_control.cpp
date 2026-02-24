@@ -42,6 +42,11 @@ public:
     profile_acceleration_ = this->get_parameter("profile_acceleration").as_int();
     profile_deceleration_ = this->get_parameter("profile_deceleration").as_int();
 
+    // max_position is treated as pulses-per-callback-at-full-deflection.
+    // The joystick autorepeat_rate is typically 20 Hz, so at full stick the
+    // motor target moves by max_position_ pulses every 50 ms.
+    position_step_ = max_position_;
+
     // Validate operating mode
     if (operating_mode_ != "position" && operating_mode_ != "velocity") {
       RCLCPP_ERROR(this->get_logger(), "Invalid operating_mode '%s'. Must be 'position' or 'velocity'.",
@@ -329,9 +334,10 @@ private:
       send_sdo_write(0x6081, 0x00, static_cast<uint32_t>(profile_velocity_));
       std::this_thread::sleep_for(delay);
 
-      // Set initial Target Position (0x607A:00) to 0
-      send_sdo_write(0x607A, 0x00, 0);
-      std::this_thread::sleep_for(delay);
+      // Do NOT command an initial target position here.
+      // The motor's current encoder position is unknown and commanding 0
+      // would cause an unwanted move.  The first joystick input will set
+      // the target relative to wherever the motor already is.
     } else {
       // Target Velocity (0x60FF:00) — initial velocity
       send_sdo_write(0x60FF, 0x00, static_cast<uint32_t>(profile_velocity_));
@@ -351,20 +357,29 @@ private:
     double axis = msg->axes[joy_axis_];
 
     if (operating_mode_ == "position") {
-      // Map axis (-1..1) to target position in pulses
-      int32_t position = static_cast<int32_t>(axis * static_cast<double>(max_position_));
+      // Incremental positioning: stick deflection controls the rate at which
+      // the target position changes.  Center stick (axis ≈ 0) = hold position.
+      //
+      // Each callback adds  axis * position_step_  to the running target.
+      // position_step_ is derived from max_position (think of it as
+      // "pulses per joystick tick at full deflection").
+      int32_t increment = static_cast<int32_t>(axis * static_cast<double>(position_step_));
+      current_position_ += increment;
 
-      RCLCPP_INFO(this->get_logger(), "Axis %d: %.3f -> position %d", joy_axis_, axis, position);
+      RCLCPP_INFO(this->get_logger(), "Axis %d: %.3f -> increment %d, target position %d",
+                  joy_axis_, axis, increment, current_position_);
 
       // Write Target Position (0x607A:00)
-      send_sdo_write(0x607A, 0x00, static_cast<uint32_t>(position));
+      send_sdo_write(0x607A, 0x00, static_cast<uint32_t>(current_position_));
 
-      // Trigger the move: set controlword bit 4 (new setpoint) + bits 0-3 (enable)
-      // 0x001F = enable operation (0x000F) | new setpoint (bit 4)
-      send_sdo_write_2byte(0x6040, 0x00, 0x001F);
+      // Trigger the move:
+      //   bit 0-3 = enable operation (0x0F)
+      //   bit 4   = new setpoint
+      //   bit 5   = change set immediately (update target on the fly)
+      send_sdo_write_2byte(0x6040, 0x00, 0x003F);
 
       // Clear the new-setpoint bit so the next write is accepted
-      // (some drives require the rising edge of bit 4)
+      // (drives require the rising edge of bit 4)
       send_sdo_write_2byte(0x6040, 0x00, 0x000F);
 
     } else {
@@ -398,7 +413,9 @@ private:
   bool shutdown_complete_ = false;
   uint8_t node_id_ = 1;
   int max_velocity_ = 1000;       // max velocity in pulses/s (velocity mode joystick scaling)
-  int max_position_ = 100000;     // max position in pulses   (position mode joystick scaling)
+  int max_position_ = 100000;     // position step scaling (pulses per tick at full deflection)
+  int position_step_ = 0;         // derived from max_position / joystick rate
+  int32_t current_position_ = 0;  // running incremental target position
   int joy_axis_ = 1;
   std::string operating_mode_ = "position";  // "position" or "velocity"
   int profile_velocity_ = 10000;    // pulses/s  (velocity during position moves, or initial target in velocity mode)

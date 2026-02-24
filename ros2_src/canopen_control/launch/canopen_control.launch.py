@@ -63,7 +63,7 @@ def generate_launch_description():
     max_position_arg = DeclareLaunchArgument(
         'max_position',
         default_value='100000',
-        description='Maximum position in pulses (position mode joystick scaling)'
+        description='Position increment per joystick callback at full stick deflection (pulses). Controls how fast the target position changes.'
     )
     
     profile_velocity_arg = DeclareLaunchArgument(
