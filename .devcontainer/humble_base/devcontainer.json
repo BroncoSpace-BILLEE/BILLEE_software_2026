@@ -33,6 +33,7 @@
 
   "containerEnv": {
     "ROS_DISTRO": "humble",
+    "RMW_IMPLEMENTATION": "rmw_cyclonedds_cpp",
     "DISPLAY": "${localEnv:DISPLAY}",
 		"WAYLAND_DISPLAY": "${localEnv:WAYLAND_DISPLAY}", 
 		"XDG_RUNTIME_DIR": "${localEnv:XDG_RUNTIME_DIR}"

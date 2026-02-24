@@ -107,6 +107,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   ros-humble-foxglove-bridge \
   ros-humble-zed-msgs \
   ros-humble-nmea-msgs \
+  ros-humble-rmw-cyclonedds-cpp \
   && rm -rf /var/lib/apt/lists/*
 
 # Install the ZED SDK
