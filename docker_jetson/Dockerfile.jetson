@@ -43,12 +43,13 @@ RUN mkdir -p /home/ros_user/ros2_ws/src && chown -R ros_user:ros_user /home/ros_
 
 RUN  add-apt-repository ppa:lely/ppa
 
-# utils for debugging CAN devices
-RUN apt-get update && apt-get install --no-install-recommends -y \ 
-can-utils \
-usbutils \
-kmod \
-&& rm -rf /var/lib/apt/lists/* 
+# Fix deprecated apt key warning and utils for debugging CAN devices
+RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys F60D527F7B3D1CFE 2>/dev/null || true && \
+    apt-get update && apt-get install --no-install-recommends -y \
+    can-utils \
+    usbutils \
+    kmod \
+    && rm -rf /var/lib/apt/lists/* 
 
 RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.bash && \
   apt-get update -y || true && rosdep update && \
