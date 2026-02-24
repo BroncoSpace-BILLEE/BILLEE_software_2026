@@ -42,8 +42,8 @@ public:
     joy_sub_ = this->create_subscription<sensor_msgs::msg::Joy>(
       "joy", 10, std::bind(&JoyToPDONode::joy_callback, this, _1));
 
-    // Send NMT command to transition node to operational
-    send_nmt_command(0x01);  // 0x01 = Start (operational)
+    // Run the full motor initialization sequence
+    initialize_motor();
     
     RCLCPP_INFO(this->get_logger(), 
       "JoyToPDONode initialized on %s for node %u (target velocity: 0x%04X:%02X)",
@@ -120,14 +120,18 @@ private:
     }
   }
 
-  void send_sdo_write(uint16_t index, uint8_t subindex, uint32_t value)
+  /**
+   * @brief Send an SDO expedited write with a specified command specifier byte.
+   * @param cmd_byte  SDO command specifier: 0x2F=1-byte, 0x2B=2-byte, 0x23=4-byte
+   */
+  void send_sdo_write_raw(uint8_t cmd_byte, uint16_t index, uint8_t subindex, uint32_t value)
   {
     struct can_frame frame;
     
     frame.can_id = 0x600 + node_id_;
     frame.can_dlc = 8;  
     
-    frame.data[0] = 0x23;  // writes 4 bytes of data
+    frame.data[0] = cmd_byte;
     
     // Bytes 1-2: this holds the index of the object to write to (see page 7 of the manual)
     frame.data[1] = (index & 0xFF);
@@ -147,12 +151,101 @@ private:
     if (nbytes != sizeof(struct can_frame)) {
       RCLCPP_ERROR(this->get_logger(), "Failed to send CAN frame: %s", strerror(errno));
     } else {
-      RCLCPP_DEBUG(this->get_logger(), 
-        "Sent SDO write: index=0x%04X subindex=0x%02X value=0x%08X to node %u",
-        index, subindex, value, node_id_);
+      RCLCPP_INFO(this->get_logger(), 
+        "Sent SDO write: cmd=0x%02X index=0x%04X subindex=0x%02X value=0x%08X to node %u",
+        cmd_byte, index, subindex, value, node_id_);
 
         logCanFrame(frame); //show what the structure of the frame looks like
     }
+  }
+
+  /// SDO write 4 bytes (command specifier 0x23)
+  void send_sdo_write(uint16_t index, uint8_t subindex, uint32_t value)
+  {
+    send_sdo_write_raw(0x23, index, subindex, value);
+  }
+
+  /// SDO write 2 bytes (command specifier 0x2B)
+  void send_sdo_write_2byte(uint16_t index, uint8_t subindex, uint16_t value)
+  {
+    send_sdo_write_raw(0x2B, index, subindex, static_cast<uint32_t>(value));
+  }
+
+  /// SDO write 1 byte (command specifier 0x2F)
+  void send_sdo_write_1byte(uint16_t index, uint8_t subindex, uint8_t value)
+  {
+    send_sdo_write_raw(0x2F, index, subindex, static_cast<uint32_t>(value));
+  }
+
+  /**
+   * @brief Full motor initialization sequence for CiA 402 Profile Velocity Mode.
+   *
+   * Step 1: Network reset and initialization (NMT)
+   * Step 2: Set operating mode to Profile Velocity (mode 3)
+   * Step 3: Enable motor via CiA 402 state machine
+   * Step 4: Configure acceleration, deceleration, and initial target velocity
+   */
+  void initialize_motor()
+  {
+    const auto delay = std::chrono::milliseconds(100);
+
+    RCLCPP_INFO(this->get_logger(), "=== Motor Initialization Start (node %u) ===", node_id_);
+
+    // ── Step 1: Network Reset and Initialization ──────────────────────
+    RCLCPP_INFO(this->get_logger(), "Step 1: Network reset and initialization");
+
+    // Reset the node  (NMT command 0x81)
+    send_nmt_command(0x81);
+    std::this_thread::sleep_for(delay);
+
+    // Reset communications  (NMT command 0x82)
+    send_nmt_command(0x82);
+    std::this_thread::sleep_for(delay);
+
+    // Set to Operational  (NMT command 0x01)
+    send_nmt_command(0x01);
+    std::this_thread::sleep_for(delay);
+
+    // ── Step 2: Set Operating Mode ────────────────────────────────────
+    RCLCPP_INFO(this->get_logger(), "Step 2: Set operating mode to Profile Velocity (mode 3)");
+
+    // Object 0x6060:00 = Modes of Operation, value 3 = Profile Velocity Mode
+    // 1-byte SDO write (command specifier 0x2F)
+    send_sdo_write_1byte(0x6060, 0x00, 0x03);
+    std::this_thread::sleep_for(delay);
+
+    // ── Step 3: Enable the Motor (CiA 402 State Machine) ─────────────
+    RCLCPP_INFO(this->get_logger(), "Step 3: CiA 402 state machine enable sequence");
+
+    // Controlword (0x6040:00) — all are 2-byte SDO writes (0x2B)
+    // Transition 2 – Shutdown
+    send_sdo_write_2byte(0x6040, 0x00, 0x0006);
+    std::this_thread::sleep_for(delay);
+
+    // Transition 3 – Switch On
+    send_sdo_write_2byte(0x6040, 0x00, 0x0007);
+    std::this_thread::sleep_for(delay);
+
+    // Transition 4 – Enable Operation
+    send_sdo_write_2byte(0x6040, 0x00, 0x000F);
+    std::this_thread::sleep_for(delay);
+
+    // ── Step 4: Configure Motion Parameters ──────────────────────────
+    RCLCPP_INFO(this->get_logger(), "Step 4: Configure motion parameters");
+
+    // Profile Acceleration (0x6083:00) = 1,000,000 pulses/s²
+    send_sdo_write(0x6083, 0x00, 1000000);
+    std::this_thread::sleep_for(delay);
+
+    // Profile Deceleration (0x6084:00) = 1,000,000 pulses/s²
+    send_sdo_write(0x6084, 0x00, 1000000);
+    std::this_thread::sleep_for(delay);
+
+    // Target Velocity (0x60FF:00) = 10,000 pulses/s  (initial velocity)
+    send_sdo_write(0x60FF, 0x00, 10000);
+    std::this_thread::sleep_for(delay);
+
+    RCLCPP_INFO(this->get_logger(), "=== Motor Initialization Complete ===");
   }
 
   void joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg)
