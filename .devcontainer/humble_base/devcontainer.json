@@ -15,6 +15,7 @@
 	  "--volume", "/tmp/.X11-unix:/tmp/.X11-unix:rw",
 	  "--volume", "/dev:/dev",
     "--device=/dev/bus/usb:/dev/bus/usb", //include zed 2 device
+    "--device=/dev/ttyACM0:/dev/ttyACM0", //include ACM0 serial device
     "--device-cgroup-rule", "c 240:* rmw",
     "--device-cgroup-rule", "c 81:* rmw",
     "--device-cgroup-rule", "c 31:* rmw",
