@@ -44,8 +44,8 @@ RUN mkdir -p /home/ros_user/ros2_ws/src && chown -R ros_user:ros_user /home/ros_
 RUN  add-apt-repository ppa:lely/ppa
 
 # Fix deprecated apt key warning and utils for debugging CAN devices
-RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys F60D527F7B3D1CFE 2>/dev/null || true && \
-    apt-get update && apt-get install --no-install-recommends -y \
+RUN apt-get update -o Acquire::AllowInsecureRepositories=true -o Acquire::AllowDowngradeToInsecureRepositories=true && \
+    apt-get install --no-install-recommends -y \
     can-utils \
     usbutils \
     kmod \
