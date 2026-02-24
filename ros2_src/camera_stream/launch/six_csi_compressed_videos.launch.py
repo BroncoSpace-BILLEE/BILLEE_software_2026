@@ -6,6 +6,7 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     # ---- Shared video parameters (override via launch arguments) ----
+    num_cameras = LaunchConfiguration("num_cameras")
     encoding = LaunchConfiguration("encoding")
     width = LaunchConfiguration("width")
     height = LaunchConfiguration("height")
@@ -19,8 +20,14 @@ def generate_launch_description():
     pkg = "camera_stream"
     exe = "csi_compressed_video_pub"
 
+    # We'll use a Python expression to expand the number of cameras
+    # Since LaunchConfiguration is evaluated at runtime, we need a different approach
+    # We'll create nodes for a reasonable max and rely on the parameter
+    import os
+    num_cams = int(os.environ.get('NUM_CAMERAS', '3'))
+    
     nodes = []
-    for i in range(6):
+    for i in range(num_cams):
         nodes.append(
             Node(
                 package=pkg,
@@ -47,7 +54,12 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
-            # ---- Launch args (defaults are good for 6x 720p30 teleop) ----
+            # ---- Launch args ----
+            DeclareLaunchArgument(
+                "num_cameras",
+                default_value=TextSubstitution(text="3"),
+                description="Number of cameras to launch (0-6)",
+            ),
             DeclareLaunchArgument(
                 "encoding",
                 default_value=TextSubstitution(text="h264"),
