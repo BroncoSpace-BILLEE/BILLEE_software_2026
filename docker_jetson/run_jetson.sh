@@ -16,6 +16,7 @@ CONTAINER_NAME="billee_ros"
 IMAGE="my_isaac_ros_jetson:humble"
 
 # if the can hat is connected then pass it to the container
+DEV_ARG=""
 if [ -e /dev/can0 ]; then
     DEV_ARG="--device=/dev/can0:/dev/can0"
 fi
@@ -32,13 +33,16 @@ if docker ps -a --format '{{.Names}}' | grep -qx "${CONTAINER_NAME}"; then
   exec docker exec -it "${CONTAINER_NAME}" bash
 fi
 
+VIDEO_DEVS=""
+[ -e /dev/video0 ] && VIDEO_DEVS="$VIDEO_DEVS --device=/dev/video0"
+[ -e /dev/video1 ] && VIDEO_DEVS="$VIDEO_DEVS --device=/dev/video1"
+[ -e /dev/video2 ] && VIDEO_DEVS="$VIDEO_DEVS --device=/dev/video2"
+
 # Otherwise, create and run it
 exec docker run -it \
   --name "${CONTAINER_NAME}" \
   --mount "type=bind,source=${HOST_WS},target=/home/ros_user/ros2_ws/src" \
-  --device=/dev/video0 \
-  --device=/dev/video1 \
-  --device=/dev/video2 \
+  ${VIDEO_DEVS} \
   --network=host \
   --ipc=host \
   ${DEV_ARG} \
