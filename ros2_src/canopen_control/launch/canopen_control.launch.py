@@ -11,13 +11,13 @@ def generate_launch_description():
     
     launch_joy_arg = DeclareLaunchArgument(
         'launch_joy',
-        default_value='true',
+        default_value='false',
         description='Launch joy_node (set to False if already running)'
     )
     
     can_interface_arg = DeclareLaunchArgument(
         'can_interface',
-        default_value='can0',
+        default_value='can3',
         description='socketCAN interface name ($ls /dev/ | grep can)'
     )
     
@@ -38,8 +38,21 @@ def generate_launch_description():
         default_value='1',
         description='Joystick axis to use (0=left_x, 1=left_y, 2=right_x, 3=right_y)'
     )
-    
-    
+    joy_axis_arg = DeclareLaunchArgument(
+        'joy_axis',
+        default_value='1',
+        description='Joystick axis to use (0=left_x, 1=left_y, 2=right_x, 3=right_y)'
+    )
+    target_velocity_index_arg = DeclareLaunchArgument(
+        'target_velocity_index',
+        default_value='0',
+        description='Target velocity index (see drive EDS for more info)'
+    )
+    target_velocity_subindex_arg = DeclareLaunchArgument(
+        'target_velocity_subindex',
+        default_value='0',
+        description='Target velocity subindex (see drive EDS for more info)'
+    )
     
     return LaunchDescription([
         launch_joy_arg,
@@ -47,6 +60,8 @@ def generate_launch_description():
         canopen_node_id_arg,
         max_velocity_arg,
         joy_axis_arg,
+        target_velocity_index_arg,
+        target_velocity_subindex_arg,
         
         Node(
             package='joy_linux',
