@@ -6,7 +6,7 @@ import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Joy
 from std_msgs.msg import Float32
-#from roboclaw_3 import RoboClaw
+from .roboclaw_3 import Roboclaw
 
 ROBOCLAW_MAX_SPEED = 127
 
@@ -37,23 +37,20 @@ class RoboClawJoy(Node):
         self.roboclaw_right_encoder_topic = self.get_parameter('roboclaw_right_encoder_topic').value
         
         # Open serial port
-        '''
-        try:
-            self.roboclaw = RoboClaw(port, baudrate)
-            self.roboclaw.Open()
+        self.roboclaw = Roboclaw(comport=port, rate=baudrate)
+        self.connected = self.roboclaw.Open()
+        if self.connected:
             self.get_logger().info(f'Connected to RoboClaw on {port}')
+            try:
+                self.roboclaw.ResetEncoders(self.address)
+            except Exception as e:
+                self.get_logger().error(f'Failed to reset encoders: {e}')
 
-        except Exception as e:
-            self.get_logger().error(f'Failed to connect to RoboClaw: {e}')
-            raise
-
-        try:
-            self.roboclaw.ResetEncoders(self.address)
             self.get_logger().info('Successfully reset encoders')
 
-        except Exception as e:
-            self.get_logger().error(f'Failed to reset encoders: {e}')
-        '''
+        else:
+            self.get_logger().error(f'Failed to connect to RoboClaw:')
+
         
         # Subscribe to joystick
         self.joy_sub = self.create_subscription(Joy, 'joy', self.joy_callback, 10)
@@ -63,8 +60,10 @@ class RoboClawJoy(Node):
         period = 1.0 / max(self.publish_hz, 1e-3)
         self.timer = self.create_timer(period, self.on_timer)
 
+        if self.connected:
+            self.get_logger().info('Simple RoboClaw controller ready!')
+
         
-        self.get_logger().info('Simple RoboClaw controller ready!')
     
     def joy_callback(self, msg: Joy):
         """Convert joystick to motor speeds and send to RoboClaw"""
@@ -105,7 +104,6 @@ class RoboClawJoy(Node):
     
     def __del__(self):
         """Stop motors on shutdown"""
-        '''
         try:
             if hasattr(self, 'serial') and self.roboclaw.is_open: #TODO: check how it extends seriallib
                 self.drive_motors(0, 0)  # Stop both motors
@@ -113,12 +111,12 @@ class RoboClawJoy(Node):
         except Exception as e:
             self.get_logger().error(f'System had issues shutting down: {e}')
             pass
-        ''' 
 
     def on_timer(self):
+        if self.connected:
+            self.left_encoder_pub.publish(self.roboclaw.ReadEncM1(self.address))
+            self.right_encoder_pub.publish(self.roboclaw.ReadEncM2(self.address))
         pass
-        #self.left_encoder_pub.publish(self.roboclaw.ReadEncM1(self.address))
-        #self.right_encoder_pub.publish(self.roboclaw.ReadEncM2(self.address))
 
 def main(args=None):
     rclpy.init(args=args)

@@ -11,5 +11,7 @@ if [ -f "/ws/install/setup.bash" ]; then
   source /ws/install/setup.bash
 fi
 
+#TODO: add colcon build of specific packages here if needed, to avoid having to do it manually every time
+
 exec "$@"
 

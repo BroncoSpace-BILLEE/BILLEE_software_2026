@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<library path="odesc_system_interface">
+  <class
+    name="odesc/OdescSystemInterface"
+    type="odesc::OdescSystemInterface"
+    base_class_type="hardware_interface::SystemInterface">
+    <description>ODrive-compatible CAN hardware interface.</description>
+  </class>
+</library>
