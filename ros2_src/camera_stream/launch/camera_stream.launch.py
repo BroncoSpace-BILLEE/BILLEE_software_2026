@@ -40,6 +40,7 @@ def generate_launch_description():
         AnyLaunchDescriptionSource(
             PathJoinSubstitution([
                 FindPackageShare("foxglove_bridge"),
+                "launch",
                 "foxglove_bridge_launch.xml",
             ])
         )
