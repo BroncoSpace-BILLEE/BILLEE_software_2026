@@ -58,9 +58,9 @@ class PlanarIKTeleop(Node):
         self.declare_parameter("link1_length", 1.0)  # metres, base to joint-2
         self.declare_parameter("link2_length", 1.0)  # metres, joint-2 to end-effector
 
-        # Initial joint angles (radians).  Default: arm pointing straight out.
-        self.declare_parameter("q1_init", 0.0)
-        self.declare_parameter("q2_init", 0.0)
+        # Initial joint angles (radians).  Default: elbow bent to avoid singularity.
+        self.declare_parameter("q1_init", 0.7854)   # ~45° shoulder
+        self.declare_parameter("q2_init", -1.5708)  # ~-90° elbow
 
         # Maximum Cartesian velocity the joystick can request (m/s at full deflection)
         self.declare_parameter("max_cartesian_vel", 0.5)
@@ -110,10 +110,11 @@ class PlanarIKTeleop(Node):
         motor1_topic: str = self.get_parameter("motor1_joy_topic").value
         motor2_topic: str = self.get_parameter("motor2_joy_topic").value
 
-        # ── State ───────────────────────────────────────────────────────
+        # ── State ───────────────────────────────────────────────────
         self.vx_cmd: float = 0.0  # desired Cartesian velocity X (forward)
         self.vy_cmd: float = 0.0  # desired Cartesian velocity Y (up)
         self.last_joy_time = None
+        self._is_idle: bool = True   # track idle state to send zero only once
 
         # ── ROS interfaces ──────────────────────────────────────────────
         self.joy_sub = self.create_subscription(
@@ -196,22 +197,28 @@ class PlanarIKTeleop(Node):
         now = self.get_clock().now()
         dt = 1.0 / max(self.publish_hz, 1e-3)
 
-        # Safety: if joystick data is stale, send zero velocity
+        # Determine whether we should be idle (no joy data, stale, or zero cmd)
+        should_idle = False
         if self.last_joy_time is None:
-            self._publish_zero()
-            return
-        age = (now - self.last_joy_time).nanoseconds * 1e-9
-        if age > self.joy_timeout:
-            self._publish_zero()
-            return
+            should_idle = True
+        else:
+            age = (now - self.last_joy_time).nanoseconds * 1e-9
+            if age > self.joy_timeout:
+                should_idle = True
 
         vx = self.vx_cmd
         vy = self.vy_cmd
+        if not should_idle and abs(vx) < 1e-6 and abs(vy) < 1e-6:
+            should_idle = True
 
-        # If no command, publish zero
-        if abs(vx) < 1e-6 and abs(vy) < 1e-6:
-            self._publish_zero()
+        # Send zero ONCE on transition to idle, then stop publishing
+        if should_idle:
+            if not self._is_idle:
+                self._publish_zero()
+                self._is_idle = True
             return
+
+        self._is_idle = False
 
         # Inverse Jacobian
         inv = self._jacobian_inv()
