@@ -1,0 +1,33 @@
+# arm_teleop_simple default configuration
+#
+# Arm geometry
+link1_length: 1.0       # metres – base to elbow
+link2_length: 1.0       # metres – elbow to end-effector
+
+# Initial joint angles (radians)
+# 0.0 = arm stretched straight forward
+q1_init: 0.0
+q2_init: 0.0
+
+# CAN bus
+can_interface: can3
+
+# CANopen motor node IDs
+motor1_canopen_id: 1    # shoulder
+motor2_canopen_id: 2    # elbow
+
+# Motor velocity limits (pulses/s)
+motor1_max_velocity: 1000
+motor2_max_velocity: 1000
+
+# Motion profiles
+profile_acceleration: 1000000   # pulses/s²
+profile_deceleration: 1000000   # pulses/s²
+
+# Cartesian teleop
+max_cartesian_vel: 0.5  # m/s at full stick deflection
+publish_hz: 20.0        # IK control loop rate
+
+# Joystick axis mapping
+joy_axis_x: 1           # left stick Y  → forward/backward
+joy_axis_y: 4           # right stick Y → up/down

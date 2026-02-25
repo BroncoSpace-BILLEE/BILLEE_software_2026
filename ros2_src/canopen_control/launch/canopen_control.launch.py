@@ -38,21 +38,6 @@ def generate_launch_description():
         default_value='1',
         description='Joystick axis to use (0=left_x, 1=left_y, 2=right_x, 3=right_y)'
     )
-    joy_axis_arg = DeclareLaunchArgument(
-        'joy_axis',
-        default_value='1',
-        description='Joystick axis to use (0=left_x, 1=left_y, 2=right_x, 3=right_y)'
-    )
-    target_velocity_index_arg = DeclareLaunchArgument(
-        'target_velocity_index',
-        default_value='0',
-        description='Target velocity index (see drive EDS for more info)'
-    )
-    target_velocity_subindex_arg = DeclareLaunchArgument(
-        'target_velocity_subindex',
-        default_value='0',
-        description='Target velocity subindex (see drive EDS for more info)'
-    )
     
     operating_mode_arg = DeclareLaunchArgument(
         'operating_mode',
@@ -90,8 +75,6 @@ def generate_launch_description():
         canopen_node_id_arg,
         max_velocity_arg,
         joy_axis_arg,
-        target_velocity_index_arg,
-        target_velocity_subindex_arg,
         operating_mode_arg,
         max_position_arg,
         profile_velocity_arg,
@@ -120,8 +103,6 @@ def generate_launch_description():
                 'canopen_node_id': LaunchConfiguration('canopen_node_id'),
                 'max_velocity': LaunchConfiguration('max_velocity'),
                 'joy_axis': LaunchConfiguration('joy_axis'),
-                'target_velocity_index': LaunchConfiguration('target_velocity_index'),
-                'target_velocity_subindex': LaunchConfiguration('target_velocity_subindex'),
                 'operating_mode': LaunchConfiguration('operating_mode'),
                 'max_position': LaunchConfiguration('max_position'),
                 'profile_velocity': LaunchConfiguration('profile_velocity'),

@@ -27,7 +27,7 @@ public:
     this->declare_parameter<int>("max_velocity", 1000);
     this->declare_parameter<int>("joy_axis", 1);
     this->declare_parameter<std::string>("operating_mode", "position");  // "position" or "velocity"
-    this->declare_parameter<int>("max_position", 100000);  // max position in pulses
+    this->declare_parameter<int>("max_position", 100000);  // position step scaling in pulses
     this->declare_parameter<int>("profile_velocity", 10000);  // velocity used during position moves (pulses/s)
     this->declare_parameter<int>("profile_acceleration", 1000000);  // pulses/s²
     this->declare_parameter<int>("profile_deceleration", 1000000);  // pulses/s²
@@ -339,8 +339,9 @@ private:
       // would cause an unwanted move.  The first joystick input will set
       // the target relative to wherever the motor already is.
     } else {
-      // Target Velocity (0x60FF:00) — initial velocity
-      send_sdo_write(0x60FF, 0x00, static_cast<uint32_t>(profile_velocity_));
+      // Target Velocity (0x60FF:00) — start at zero so the motor does not
+      // move until the first joystick input arrives.
+      send_sdo_write(0x60FF, 0x00, 0);
       std::this_thread::sleep_for(delay);
     }
 
@@ -389,8 +390,7 @@ private:
       RCLCPP_INFO(this->get_logger(), "Axis %d: %.3f -> velocity %d", joy_axis_, axis, velocity);
 
       // Write Target Velocity (0x60FF:00)
-      send_sdo_write(target_velocity_index_, target_velocity_subindex_,
-                     static_cast<uint32_t>(velocity));
+      send_sdo_write(0x60FF, 0x00, static_cast<uint32_t>(velocity));
     }
   }
 
@@ -421,8 +421,6 @@ private:
   int profile_velocity_ = 10000;    // pulses/s  (velocity during position moves, or initial target in velocity mode)
   int profile_acceleration_ = 1000000;  // pulses/s²
   int profile_deceleration_ = 1000000;  // pulses/s²
-  uint16_t target_velocity_index_ = 0x60FF;
-  uint8_t target_velocity_subindex_ = 0x00;
 };
 
 // Global weak_ptr so the signal handler can trigger shutdown without preventing destruction
