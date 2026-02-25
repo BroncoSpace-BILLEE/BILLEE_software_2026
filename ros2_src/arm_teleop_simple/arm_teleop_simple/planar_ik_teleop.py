@@ -59,8 +59,8 @@ class PlanarIKTeleop(Node):
         self.declare_parameter("link2_length", 1.0)  # metres, joint-2 to end-effector
 
         # Initial joint angles (radians).  Default: elbow bent to avoid singularity.
-        self.declare_parameter("q1_init", 0.7854)   # ~45° shoulder
-        self.declare_parameter("q2_init", -1.5708)  # ~-90° elbow
+        self.declare_parameter("q1_init", 1.2217)  # ~70° (link 1 droops 20° below vertical)
+        self.declare_parameter("q2_init", -0.3491)  # ~-20° (link 2 bends 20° further down)
 
         # Maximum Cartesian velocity the joystick can request (m/s at full deflection)
         self.declare_parameter("max_cartesian_vel", 0.5)
@@ -91,21 +91,23 @@ class PlanarIKTeleop(Node):
         self.declare_parameter("q2_max",  3.14159)
 
         # ── Read parameters ─────────────────────────────────────────────
-        self.L1: float = self.get_parameter("link1_length").value
-        self.L2: float = self.get_parameter("link2_length").value
-        self.q1: float = self.get_parameter("q1_init").value
-        self.q2: float = self.get_parameter("q2_init").value
-        self.max_cart_vel: float = self.get_parameter("max_cartesian_vel").value
-        self.publish_hz: float = self.get_parameter("publish_hz").value
-        self.deadzone: float = self.get_parameter("deadzone").value
-        self.joy_timeout: float = self.get_parameter("joy_timeout_sec").value
-        self.axis_x: int = self.get_parameter("joy_axis_x").value
-        self.axis_y: int = self.get_parameter("joy_axis_y").value
-        self.singularity_thresh: float = self.get_parameter("singularity_threshold").value
-        self.q1_min: float = self.get_parameter("q1_min").value
-        self.q1_max: float = self.get_parameter("q1_max").value
-        self.q2_min: float = self.get_parameter("q2_min").value
-        self.q2_max: float = self.get_parameter("q2_max").value
+        # Explicit float()/int() casts because launch-file LaunchConfiguration
+        # values arrive as strings even when the default is numeric.
+        self.L1 = float(self.get_parameter("link1_length").value)
+        self.L2 = float(self.get_parameter("link2_length").value)
+        self.q1 = float(self.get_parameter("q1_init").value)
+        self.q2 = float(self.get_parameter("q2_init").value)
+        self.max_cart_vel = float(self.get_parameter("max_cartesian_vel").value)
+        self.publish_hz = float(self.get_parameter("publish_hz").value)
+        self.deadzone = float(self.get_parameter("deadzone").value)
+        self.joy_timeout = float(self.get_parameter("joy_timeout_sec").value)
+        self.axis_x = int(self.get_parameter("joy_axis_x").value)
+        self.axis_y = int(self.get_parameter("joy_axis_y").value)
+        self.singularity_thresh = float(self.get_parameter("singularity_threshold").value)
+        self.q1_min = float(self.get_parameter("q1_min").value)
+        self.q1_max = float(self.get_parameter("q1_max").value)
+        self.q2_min = float(self.get_parameter("q2_min").value)
+        self.q2_max = float(self.get_parameter("q2_max").value)
 
         motor1_topic: str = self.get_parameter("motor1_joy_topic").value
         motor2_topic: str = self.get_parameter("motor2_joy_topic").value

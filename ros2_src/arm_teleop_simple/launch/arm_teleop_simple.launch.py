@@ -61,13 +61,13 @@ def generate_launch_description():
         'link2_length', default_value='1.0',
         description='Length of link 2 in metres (elbow to end-effector)')
 
-    # Initial joint angles (radians) – defaults avoid the q2=0 singularity
+    # Initial joint angles (radians) – default: both links drooping 20° (easy to set manually)
     q1_init_arg = DeclareLaunchArgument(
-        'q1_init', default_value='0.7854',
-        description='Initial angle of joint 1 in radians (~45° shoulder)')
+        'q1_init', default_value='-0.3491',
+        description='Initial angle of joint 1 in radians (~-20°, link 1 tilted 20° below horizontal)')
     q2_init_arg = DeclareLaunchArgument(
-        'q2_init', default_value='-1.5708',
-        description='Initial angle of joint 2 in radians (~-90° elbow)')
+        'q2_init', default_value='-0.3491',
+        description='Initial angle of joint 2 in radians (~-20°, link 2 bent 20° further down)')
 
     # Cartesian speed
     max_cartesian_vel_arg = DeclareLaunchArgument(
