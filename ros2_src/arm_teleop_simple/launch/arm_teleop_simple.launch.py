@@ -18,6 +18,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description():
@@ -157,8 +158,10 @@ def generate_launch_description():
             'joy_axis_y': LaunchConfiguration('joy_axis_y'),
             'motor1_pulses_per_rad': LaunchConfiguration('motor1_pulses_per_rad'),
             'motor2_pulses_per_rad': LaunchConfiguration('motor2_pulses_per_rad'),
-            'motor1_max_velocity': LaunchConfiguration('motor1_max_velocity'),
-            'motor2_max_velocity': LaunchConfiguration('motor2_max_velocity'),
+            'motor1_max_velocity': ParameterValue(
+                LaunchConfiguration('motor1_max_velocity'), value_type=float),
+            'motor2_max_velocity': ParameterValue(
+                LaunchConfiguration('motor2_max_velocity'), value_type=float),
         }],
     )
 
