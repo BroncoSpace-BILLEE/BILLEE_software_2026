@@ -293,20 +293,8 @@ private:
     send_nmt_command(0x01);
     std::this_thread::sleep_for(delay);
 
-    // ── Step 2: CiA 402 State Machine — reach "Switch On" ──────────
-    RCLCPP_INFO(this->get_logger(), "Step 2: CiA 402 state machine — reach Switch On state");
-
-    // Controlword (0x6040:00) — all are 2-byte SDO writes (0x2B)
-    // Transition 2 – Shutdown  (→ Ready to Switch On)
-    send_sdo_write_2byte(0x6040, 0x00, 0x0006);
-    std::this_thread::sleep_for(delay);
-
-    // Transition 3 – Switch On  (→ Switched On)
-    send_sdo_write_2byte(0x6040, 0x00, 0x0007);
-    std::this_thread::sleep_for(delay);
-
-    // ── Step 3: Set Operating Mode (while in Switched On state) ──────
-    RCLCPP_INFO(this->get_logger(), "Step 3: Set operating mode to %s (CiA 402 mode %u)",
+    // ── Step 2: Set Operating Mode ─────────────────────────────────
+    RCLCPP_INFO(this->get_logger(), "Step 2: Set operating mode to %s (CiA 402 mode %u)",
                 operating_mode_.c_str(), cia402_mode);
 
     // Object 0x6060:00 = Modes of Operation
@@ -314,8 +302,8 @@ private:
     send_sdo_write_1byte(0x6060, 0x00, cia402_mode);
     std::this_thread::sleep_for(delay);
 
-    // ── Step 4: Configure Motion Parameters ──────────────────────────
-    RCLCPP_INFO(this->get_logger(), "Step 4: Configure motion parameters");
+    // ── Step 3: Configure Motion Parameters ──────────────────────────
+    RCLCPP_INFO(this->get_logger(), "Step 3: Configure motion parameters");
 
     // Profile Acceleration (0x6083:00)
     send_sdo_write(0x6083, 0x00, static_cast<uint32_t>(profile_acceleration_));
@@ -325,21 +313,33 @@ private:
     send_sdo_write(0x6084, 0x00, static_cast<uint32_t>(profile_deceleration_));
     std::this_thread::sleep_for(delay);
 
-    // Profile Velocity (0x6081:00) — used as speed limit in both modes
-    send_sdo_write(0x6081, 0x00, static_cast<uint32_t>(profile_velocity_));
-    std::this_thread::sleep_for(delay);
-
-    if (!is_position) {
+    if (is_position) {
+      // Profile Velocity (0x6081:00) — the velocity used during position moves
+      send_sdo_write(0x6081, 0x00, static_cast<uint32_t>(profile_velocity_));
+      std::this_thread::sleep_for(delay);
+    } else {
       // Target Velocity (0x60FF:00) — start at zero so the motor does not
       // move until the first joystick input arrives.
       send_sdo_write(0x60FF, 0x00, 0);
       std::this_thread::sleep_for(delay);
     }
 
-    // ── Step 5: Enable Operation ─────────────────────────────────────
-    RCLCPP_INFO(this->get_logger(), "Step 5: Enable Operation");
+    // ── Step 4: Enable via CiA 402 state machine (06 → 07 → 0F) ────
+    // Manual: "Configuration 0x6040 = 06->07->0f, the servo enters the
+    //          enabled state and starts to rotate."
+    // The full transition sequence must come AFTER mode and parameters
+    // are configured.
+    RCLCPP_INFO(this->get_logger(), "Step 4: CiA 402 state machine enable (06->07->0F)");
 
-    // Transition 4 – Enable Operation
+    // Transition 2 – Shutdown  (→ Ready to Switch On)
+    send_sdo_write_2byte(0x6040, 0x00, 0x0006);
+    std::this_thread::sleep_for(delay);
+
+    // Transition 3 – Switch On  (→ Switched On)
+    send_sdo_write_2byte(0x6040, 0x00, 0x0007);
+    std::this_thread::sleep_for(delay);
+
+    // Transition 4 – Enable Operation  (→ Operation Enabled, motor starts)
     send_sdo_write_2byte(0x6040, 0x00, 0x000F);
     std::this_thread::sleep_for(delay);
 
@@ -389,6 +389,11 @@ private:
 
       // Write Target Velocity (0x60FF:00)
       send_sdo_write(0x60FF, 0x00, static_cast<uint32_t>(velocity));
+
+      // Re-assert Enable Operation with halt bit clear (bit 8 = 0).
+      // Some drives require the controlword to be refreshed after writing
+      // the target velocity, or they latch a halt state.
+      send_sdo_write_2byte(0x6040, 0x00, 0x000F);
     }
   }
 
