@@ -45,6 +45,16 @@ def generate_launch_description():
         'motor2_max_velocity', default_value='1000',
         description='Max velocity for motor 2 (pulses/s)')
 
+    # Motor pulse conversion (pulses per output-shaft radian)
+    # encoder_ppr * gear_ratio / (2*pi)
+    # Motor 1: 65536 * 121 / 2π = 1262017    Motor 2: 65536 * 51 / 2π = 531940
+    motor1_ppr_arg = DeclareLaunchArgument(
+        'motor1_pulses_per_rad', default_value='1262017.0',
+        description='Motor 1 encoder pulses per output-shaft radian (65536 ppr × 121 gear / 2π)')
+    motor2_ppr_arg = DeclareLaunchArgument(
+        'motor2_pulses_per_rad', default_value='531940.0',
+        description='Motor 2 encoder pulses per output-shaft radian (65536 ppr × 51 gear / 2π)')
+
     # Motor profile parameters
     profile_acceleration_arg = DeclareLaunchArgument(
         'profile_acceleration', default_value='1000000',
@@ -145,6 +155,10 @@ def generate_launch_description():
             'motor2_joy_topic': '/motor2/joy',
             'joy_axis_x': LaunchConfiguration('joy_axis_x'),
             'joy_axis_y': LaunchConfiguration('joy_axis_y'),
+            'motor1_pulses_per_rad': LaunchConfiguration('motor1_pulses_per_rad'),
+            'motor2_pulses_per_rad': LaunchConfiguration('motor2_pulses_per_rad'),
+            'motor1_max_velocity': LaunchConfiguration('motor1_max_velocity'),
+            'motor2_max_velocity': LaunchConfiguration('motor2_max_velocity'),
         }],
     )
 
@@ -155,6 +169,8 @@ def generate_launch_description():
         motor2_node_id_arg,
         motor1_max_vel_arg,
         motor2_max_vel_arg,
+        motor1_ppr_arg,
+        motor2_ppr_arg,
         profile_acceleration_arg,
         profile_deceleration_arg,
         link1_length_arg,

@@ -81,8 +81,24 @@ class PlanarIKTeleop(Node):
         self.declare_parameter("motor1_joy_topic", "/motor1/joy")
         self.declare_parameter("motor2_joy_topic", "/motor2/joy")
 
-        # Singularity avoidance: minimum Jacobian determinant magnitude
-        self.declare_parameter("singularity_threshold", 0.01)
+        # Damped least-squares damping factor (higher = safer near singularities
+        # but less accurate tracking; 0.05–0.2 is typical)
+        self.declare_parameter("damping", 0.1)
+
+        # Maximum joint velocity (rad/s) — prevents runaway integration
+        self.declare_parameter("max_joint_vel", 1.0)
+
+        # Motor pulse conversion: pulses per output-shaft radian.
+        #   pulses_per_rad = encoder_resolution_per_motor_rev * gear_ratio / (2*pi)
+        # Motor 1 (shoulder): 65536 ppr * 121 gear = 7929856 pulses/rev → 1262017 pulses/rad
+        # Motor 2 (elbow):    65536 ppr *  51 gear = 3342336 pulses/rev →  531940 pulses/rad
+        self.declare_parameter("motor1_pulses_per_rad", 1262017.0)
+        self.declare_parameter("motor2_pulses_per_rad", 531940.0)
+
+        # Max motor velocity (pulses/s) — must match canopen_control max_velocity
+        # so the normalised axis value maps correctly.
+        self.declare_parameter("motor1_max_velocity", 1000.0)
+        self.declare_parameter("motor2_max_velocity", 1000.0)
 
         # Joint angle limits (radians) – prevent the arm from folding back on itself
         self.declare_parameter("q1_min", -3.14159)
@@ -103,7 +119,12 @@ class PlanarIKTeleop(Node):
         self.joy_timeout = float(self.get_parameter("joy_timeout_sec").value)
         self.axis_x = int(self.get_parameter("joy_axis_x").value)
         self.axis_y = int(self.get_parameter("joy_axis_y").value)
-        self.singularity_thresh = float(self.get_parameter("singularity_threshold").value)
+        self.damping = float(self.get_parameter("damping").value)
+        self.max_joint_vel = float(self.get_parameter("max_joint_vel").value)
+        self.m1_ppr = float(self.get_parameter("motor1_pulses_per_rad").value)
+        self.m2_ppr = float(self.get_parameter("motor2_pulses_per_rad").value)
+        self.m1_max_vel = float(self.get_parameter("motor1_max_velocity").value)
+        self.m2_max_vel = float(self.get_parameter("motor2_max_velocity").value)
         self.q1_min = float(self.get_parameter("q1_min").value)
         self.q1_max = float(self.get_parameter("q1_max").value)
         self.q2_min = float(self.get_parameter("q2_min").value)
@@ -136,6 +157,14 @@ class PlanarIKTeleop(Node):
         self.get_logger().info(
             f"  Publishing motor cmds to: {motor1_topic}, {motor2_topic}"
         )
+        self.get_logger().info(
+            f"  Motor 1: {self.m1_ppr:.0f} pulses/rad, max {self.m1_max_vel:.0f} pulses/s "
+            f"→ max {self.m1_max_vel/self.m1_ppr:.4f} rad/s output"
+        )
+        self.get_logger().info(
+            f"  Motor 2: {self.m2_ppr:.0f} pulses/rad, max {self.m2_max_vel:.0f} pulses/s "
+            f"→ max {self.m2_max_vel/self.m2_ppr:.4f} rad/s output"
+        )
         fk_x, fk_y = self._fk()
         self.get_logger().info(
             f"  Initial end-effector position: ({fk_x:.3f}, {fk_y:.3f}) m"
@@ -148,15 +177,22 @@ class PlanarIKTeleop(Node):
         y = self.L1 * math.sin(self.q1) + self.L2 * math.sin(self.q1 + self.q2)
         return x, y
 
-    # ── Jacobian and inverse ────────────────────────────────────────────
-    def _jacobian_inv(self) -> tuple[float, float, float, float] | None:
+    # ── Jacobian and inverse (damped least-squares) ───────────────────
+    def _jacobian_inv(self, vx: float, vy: float) -> tuple[float, float]:
         """
-        Compute the inverse of the 2×2 Jacobian:
+        Compute joint velocities using the damped-least-squares (DLS)
+        pseudo-inverse of the 2×2 Jacobian.  This avoids the hard
+        singularity cutoff — near a singularity the velocities are
+        smoothly attenuated instead of snapping to zero.
 
             J = | -L1*s1 - L2*s12    -L2*s12 |
                 |  L1*c1 + L2*c12     L2*c12 |
 
-        Returns (inv_00, inv_01, inv_10, inv_11) or None if singular.
+        DLS:  q_dot = J^T (J J^T + λ² I)^{-1} x_dot
+
+        For a 2×2 matrix this has a closed-form solution.
+
+        Returns (q1_dot, q2_dot).
         """
         s1 = math.sin(self.q1)
         c1 = math.cos(self.q1)
@@ -168,17 +204,33 @@ class PlanarIKTeleop(Node):
         j21 = self.L1 * c1 + self.L2 * c12
         j22 = self.L2 * c12
 
-        det = j11 * j22 - j12 * j21
-        if abs(det) < self.singularity_thresh:
-            return None
+        # JJ^T is a 2×2 symmetric matrix:
+        #   a = j11² + j12²
+        #   b = j11*j21 + j12*j22
+        #   d = j21² + j22²
+        a = j11*j11 + j12*j12
+        b = j11*j21 + j12*j22
+        d = j21*j21 + j22*j22
 
+        # Damping factor — λ²
+        lam2 = self.damping ** 2
+
+        # (JJ^T + λ²I) is [[a+λ², b], [b, d+λ²]]
+        # Its inverse determinant:
+        det = (a + lam2) * (d + lam2) - b * b
+        if abs(det) < 1e-12:
+            return (0.0, 0.0)
         inv_det = 1.0 / det
-        return (
-             j22 * inv_det,   # inv_00
-            -j12 * inv_det,   # inv_01
-            -j21 * inv_det,   # inv_10
-             j11 * inv_det,   # inv_11
-        )
+
+        # inv(JJ^T + λ²I) @ x_dot
+        tmp_x = inv_det * ((d + lam2) * vx - b * vy)
+        tmp_y = inv_det * (-b * vx + (a + lam2) * vy)
+
+        # J^T @ tmp
+        q1_dot = j11 * tmp_x + j21 * tmp_y
+        q2_dot = j12 * tmp_x + j22 * tmp_y
+
+        return (q1_dot, q2_dot)
 
     # ── Joystick callback ──────────────────────────────────────────────
     def _joy_cb(self, msg: Joy) -> None:
@@ -222,20 +274,16 @@ class PlanarIKTeleop(Node):
 
         self._is_idle = False
 
-        # Inverse Jacobian
-        inv = self._jacobian_inv()
-        if inv is None:
-            self.get_logger().warn(
-                "Near singularity — cannot compute IK, sending zero velocity"
-            )
-            self._publish_zero()
-            return
+        # Damped-least-squares IK — never returns None, gracefully
+        # attenuates near singularities instead of hard-stopping.
+        q1_dot, q2_dot = self._jacobian_inv(vx, vy)
 
-        inv_00, inv_01, inv_10, inv_11 = inv
-
-        # Joint velocities (rad/s)
-        q1_dot = inv_00 * vx + inv_01 * vy
-        q2_dot = inv_10 * vx + inv_11 * vy
+        # Clamp joint velocities to max_joint_vel (rad/s)
+        max_jv = self.max_joint_vel
+        if abs(q1_dot) > max_jv:
+            q1_dot = math.copysign(max_jv, q1_dot)
+        if abs(q2_dot) > max_jv:
+            q2_dot = math.copysign(max_jv, q2_dot)
 
         # Integrate to update internal joint state
         q1_new = self.q1 + q1_dot * dt
@@ -254,27 +302,18 @@ class PlanarIKTeleop(Node):
         self.q1 = q1_new
         self.q2 = q2_new
 
-        # Normalise joint velocities to [-1, 1] for the canopen_control nodes.
-        # Each canopen_control node multiplies the axis value by max_velocity to
-        # get the actual motor command in pulses/s, so we need to pick a
-        # reasonable normalisation.  We normalise by the maximum joint velocity
-        # that would occur at full Cartesian speed given the arm geometry.
-        #
-        # A conservative upper bound for the joint velocity magnitude is
-        #   max_cart_vel / min(L1, L2)   (rad/s)
-        # so we use that.
-        max_qdot = self.max_cart_vel / min(self.L1, self.L2)
-        if max_qdot < 1e-6:
-            max_qdot = 1.0
-
-        norm1 = _clamp(q1_dot / max_qdot)
-        norm2 = _clamp(q2_dot / max_qdot)
+        # Convert joint velocities (rad/s) to normalised motor commands.
+        # canopen_control computes:  motor_pulses_s = axis_value * max_velocity
+        # We need:                   motor_pulses_s = q_dot * pulses_per_rad
+        # Therefore:                 axis_value = (q_dot * pulses_per_rad) / max_velocity
+        norm1 = _clamp((q1_dot * self.m1_ppr) / self.m1_max_vel if self.m1_max_vel > 0 else 0.0)
+        norm2 = _clamp((q2_dot * self.m2_ppr) / self.m2_max_vel if self.m2_max_vel > 0 else 0.0)
 
         self._publish_motor_cmds(norm1, norm2)
 
-        # Periodic debug log
+        # Periodic info log (so we can see what's happening)
         fk_x, fk_y = self._fk()
-        self.get_logger().debug(
+        self.get_logger().info(
             f"vx={vx:.3f} vy={vy:.3f} | "
             f"q1_dot={q1_dot:.3f} q2_dot={q2_dot:.3f} | "
             f"norm=({norm1:.3f},{norm2:.3f}) | "
