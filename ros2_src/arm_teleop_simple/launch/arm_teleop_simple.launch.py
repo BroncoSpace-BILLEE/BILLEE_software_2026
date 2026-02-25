@@ -3,31 +3,26 @@
 arm_teleop_simple.launch.py
 
 Launches:
-  1. joy_linux_node         – gamepad driver (optional, if not already running)
-  2. canopen_control node 1 – motor 1 (shoulder), velocity mode, listening on /motor1/joy
-  3. canopen_control node 2 – motor 2 (elbow),    velocity mode, listening on /motor2/joy
-  4. planar_ik_teleop       – IK solver: /joy → /motor1/joy, /motor2/joy
+  1. canopen_control node 1 – motor 1 (shoulder), velocity mode, listening on /motor1/joy
+  2. canopen_control node 2 – motor 2 (elbow),    velocity mode, listening on /motor2/joy
+  3. planar_ik_teleop       – IK solver: /joy → /motor1/joy, /motor2/joy
 
 Both motors share the same CAN bus.  Each canopen_control instance is
 remapped so it subscribes to its own synthetic Joy topic instead of /joy.
 The IK node reads the real /joy and publishes computed velocities.
+
+NOTE: joy_linux_node must be launched separately (e.g. via chassis_bringup).
 """
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
-from launch.conditions import IfCondition
 from launch_ros.actions import Node
 
 
 def generate_launch_description():
 
     # ── Launch arguments ────────────────────────────────────────────────
-
-    # Joy node
-    launch_joy_arg = DeclareLaunchArgument(
-        'launch_joy', default_value='true',
-        description='Launch the joy_linux_node (set false if already running)')
 
     # CAN bus
     can_interface_arg = DeclareLaunchArgument(
@@ -94,20 +89,7 @@ def generate_launch_description():
 
     # ── Nodes ───────────────────────────────────────────────────────────
 
-    # 1) Joystick driver
-    joy_node = Node(
-        package='joy_linux',
-        executable='joy_linux_node',
-        name='joy_node',
-        parameters=[{
-            'device_id': 0,
-            'deadzone': 0.05,
-            'autorepeat_rate': 20.0,
-        }],
-        condition=IfCondition(LaunchConfiguration('launch_joy')),
-    )
-
-    # 2) canopen_control – Motor 1 (shoulder)
+    # 1) canopen_control – Motor 1 (shoulder)
     #    Remapped: subscribes to /motor1/joy instead of /joy
     #    joy_axis=0 because the IK node puts the command in axes[0]
     motor1_node = Node(
@@ -127,7 +109,7 @@ def generate_launch_description():
         }],
     )
 
-    # 3) canopen_control – Motor 2 (elbow)
+    # 2) canopen_control – Motor 2 (elbow)
     motor2_node = Node(
         package='canopen_control',
         executable='canopen_control',
@@ -145,7 +127,7 @@ def generate_launch_description():
         }],
     )
 
-    # 4) Planar IK teleop node
+    # 3) Planar IK teleop node
     ik_node = Node(
         package='arm_teleop_simple',
         executable='planar_ik_teleop',
@@ -168,7 +150,6 @@ def generate_launch_description():
 
     return LaunchDescription([
         # Arguments
-        launch_joy_arg,
         can_interface_arg,
         motor1_node_id_arg,
         motor2_node_id_arg,
@@ -185,7 +166,6 @@ def generate_launch_description():
         joy_axis_x_arg,
         joy_axis_y_arg,
         # Nodes
-        joy_node,
         motor1_node,
         motor2_node,
         ik_node,
