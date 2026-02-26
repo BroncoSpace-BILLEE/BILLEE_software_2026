@@ -26,6 +26,8 @@ setup(
     entry_points={
         'console_scripts': [
             'planar_ik_teleop = arm_teleop_simple.planar_ik_teleop:main',
+            'wrist_teleop = arm_teleop_simple.wrist_teleop:main',
+            'gripper_base_teleop = arm_teleop_simple.gripper_base_teleop:main',
         ],
     },
 )

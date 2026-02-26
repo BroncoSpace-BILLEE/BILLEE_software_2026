@@ -13,6 +13,7 @@
 
   <exec_depend>canopen_control</exec_depend>
   <exec_depend>joy_linux</exec_depend>
+  <exec_depend>simple_roboclaw</exec_depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
