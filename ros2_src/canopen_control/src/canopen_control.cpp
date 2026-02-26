@@ -241,7 +241,20 @@ private:
     // Send the frame
     ssize_t nbytes = write(can_socket_, &frame, sizeof(struct can_frame));
     if (nbytes != sizeof(struct can_frame)) {
-      RCLCPP_ERROR(this->get_logger(), "Failed to send CAN frame: %s", strerror(errno));
+      int err = errno;
+      // ENETDOWN/ENODEV/ENXIO = interface bus-off or removed.
+      // ENOBUFS = TX kernel queue full (overloaded bus or too many writes).
+      // In all cases, set bus_down_ so the recovery timer reopens the socket.
+      if (err == ENETDOWN || err == ENODEV || err == ENXIO || err == ENOBUFS) {
+        if (!bus_down_) {
+          bus_down_ = true;
+          RCLCPP_ERROR(this->get_logger(),
+            "CAN interface %s error (%s) — will retry automatically",
+            can_interface_.c_str(), strerror(err));
+        }
+      } else {
+        RCLCPP_ERROR(this->get_logger(), "Failed to send CAN frame: %s", strerror(err));
+      }
     } else {
       RCLCPP_DEBUG(this->get_logger(), 
         "Sent SDO write: cmd=0x%02X index=0x%04X subindex=0x%02X value=0x%08X to node %u",
@@ -399,13 +412,11 @@ private:
 
       RCLCPP_DEBUG(this->get_logger(), "Axis %d: %.3f -> velocity %d", joy_axis_, axis, velocity);
 
-      // Write Target Velocity (0x60FF:00)
+      // Write Target Velocity (0x60FF:00).
+      // The controlword is set to Enable Operation during initialize_motor()
+      // and does not need to be refreshed on every tick — doing so doubles
+      // bus traffic and fills the receive buffer with ACK frames.
       send_sdo_write(0x60FF, 0x00, static_cast<uint32_t>(velocity));
-
-      // Re-assert Enable Operation with halt bit clear (bit 8 = 0).
-      // Some drives require the controlword to be refreshed after writing
-      // the target velocity, or they latch a halt state.
-      send_sdo_write_2byte(0x6040, 0x00, 0x000F);
     }
   }
 
@@ -423,9 +434,12 @@ private:
 
   // Members
   rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub_;
+  rclcpp::TimerBase::SharedPtr drain_timer_;
   std::string can_interface_ = "can0";
   int can_socket_ = -1;
   bool shutdown_complete_ = false;
+  bool bus_down_ = false;
+  rclcpp::Time last_recovery_attempt_{0, 0, RCL_ROS_TIME};
   uint8_t node_id_ = 1;
   int max_velocity_ = 1000;       // max velocity in pulses/s (velocity mode joystick scaling)
   int max_position_ = 100000;     // position step scaling (pulses per tick at full deflection)
