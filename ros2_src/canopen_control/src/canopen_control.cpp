@@ -7,7 +7,6 @@
 #include <net/if.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
-#include <fcntl.h>
 #include <linux/can.h>
 #include <linux/can/raw.h>
 #include <unistd.h>
@@ -73,20 +72,13 @@ public:
 
     // Run the full motor initialization sequence
     initialize_motor();
-
-    // Drain the CAN receive buffer periodically so it never fills up and
-    // causes write() to return ENOBUFS. The socket is set non-blocking so
-    // these reads return immediately when there is nothing to consume.
-    drain_timer_ = this->create_wall_timer(
-      std::chrono::milliseconds(10),
-      std::bind(&JoyToPDONode::drain_rx, this));
     
     RCLCPP_INFO(this->get_logger(), 
       "JoyToPDONode initialized on %s for node %u, mode=%s",
       can_interface_.c_str(), node_id_, operating_mode_.c_str());
 
     if (debug_) {
-      (void)rcutils_logging_set_logger_level(
+      rcutils_logging_set_logger_level(
         this->get_logger().get_name(), RCUTILS_LOG_SEVERITY_DEBUG);
       RCLCPP_INFO(this->get_logger(), "Debug logging enabled.");
     }
@@ -187,19 +179,6 @@ private:
     rfilter.can_mask = CAN_EFF_MASK | CAN_EFF_FLAG | CAN_RTR_FLAG;
     if (setsockopt(can_socket_, SOL_CAN_RAW, CAN_RAW_FILTER, &rfilter, sizeof(rfilter)) < 0) {
       RCLCPP_WARN(this->get_logger(), "Failed to set CAN filter (non-fatal): %s", strerror(errno));
-    }
-
-    // Shrink the receive buffer to the minimum so it fills and drops
-    // quickly rather than accumulating a backlog that blocks writes.
-    int rcvbuf = 4096;
-    if (setsockopt(can_socket_, SOL_SOCKET, SO_RCVBUF, &rcvbuf, sizeof(rcvbuf)) < 0) {
-      RCLCPP_WARN(this->get_logger(), "Failed to shrink SO_RCVBUF (non-fatal): %s", strerror(errno));
-    }
-
-    // Make the socket non-blocking so drain reads return immediately.
-    int flags = fcntl(can_socket_, F_GETFL, 0);
-    if (flags < 0 || fcntl(can_socket_, F_SETFL, flags | O_NONBLOCK) < 0) {
-      RCLCPP_WARN(this->get_logger(), "Failed to set socket non-blocking (non-fatal): %s", strerror(errno));
     }
 
     RCLCPP_INFO(this->get_logger(), "Successfully bound to CAN interface %s", can_interface_.c_str());
@@ -437,24 +416,13 @@ private:
       msg << std::setw(2) << std::setfill('0') << std::hex << (int)frame.data[i];
     }
     RCLCPP_DEBUG(this->get_logger(), "CAN FRAME: %s", msg.str().c_str());
-               
+                 
   }
 
-  /// Drain all pending frames from the receive buffer so it never fills
-  /// up and backpressures write() with ENOBUFS.
-  void drain_rx()
-  {
-    if (can_socket_ < 0) return;
-    struct can_frame frame;
-    while (read(can_socket_, &frame, sizeof(frame)) > 0) {
-      // discard — we only care about writing
-    }
-  }
 
 
   // Members
   rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub_;
-  rclcpp::TimerBase::SharedPtr drain_timer_;
   std::string can_interface_ = "can0";
   int can_socket_ = -1;
   bool shutdown_complete_ = false;
