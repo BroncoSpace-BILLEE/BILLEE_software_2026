@@ -21,6 +21,11 @@ if [ -e /dev/can0 ]; then
     DEV_ARG="--device=/dev/can0:/dev/can0"
 fi
 
+# Pass through USB serial devices if present
+if [ -e /dev/ttyACM0 ]; then
+  DEV_ARG="$DEV_ARG --device=/dev/ttyACM0:/dev/ttyACM0"
+fi
+
 
 # If the container is already running, just open a new shell in it
 if docker ps --format '{{.Names}}' | grep -qx "${CONTAINER_NAME}"; then

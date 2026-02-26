@@ -17,6 +17,11 @@ ARG USER_GID=1000
 ARG ROS2_DIST=humble 
 ARG DEBIAN_FRONTEND=noninteractive
 
+# create a non-root user and add to dialout for serial devices
+RUN groupadd --gid ${USER_GID} ${USERNAME} \
+  && useradd --uid ${USER_UID} --gid ${USER_GID} -m -s /bin/bash ${USERNAME} \
+  && usermod -aG dialout ${USERNAME}
+
 ENV NVIDIA_DRIVER_CAPABILITIES \
     ${NVIDIA_DRIVER_CAPABILITIES:+$NVIDIA_DRIVER_CAPABILITIES,}compute,video,utility
     
