@@ -109,6 +109,7 @@ def generate_launch_description():
             'max_velocity': LaunchConfiguration('elbow_max_velocity'),
             'joy_axis': '4',
             'launch_joy': 'false',
+            'invert_axis' : 'true',
         }.items(),
     )
 

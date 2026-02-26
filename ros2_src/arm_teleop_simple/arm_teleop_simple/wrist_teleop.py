@@ -103,7 +103,7 @@ class WristTeleop(Node):
             else 0.0
         )
         roll_raw = (
-            msg.axes[self.axis_roll]
+            -msg.axes[self.axis_roll]
             if len(msg.axes) > self.axis_roll
             else 0.0
         )
