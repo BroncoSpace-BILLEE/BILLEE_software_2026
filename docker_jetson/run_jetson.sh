@@ -26,6 +26,10 @@ if [ -e /dev/ttyACM0 ]; then
   DEV_ARG="$DEV_ARG --device=/dev/ttyACM0:/dev/ttyACM0"
 fi
 
+if [ -e /dev/ttyACM1 ]; then
+  DEV_ARG="$DEV_ARG --device=/dev/ttyACM1:/dev/ttyACM1"
+fi
+
 
 # If the container is already running, just open a new shell in it
 if docker ps --format '{{.Names}}' | grep -qx "${CONTAINER_NAME}"; then
@@ -42,6 +46,9 @@ VIDEO_DEVS=""
 [ -e /dev/video0 ] && VIDEO_DEVS="$VIDEO_DEVS --device=/dev/video0"
 [ -e /dev/video1 ] && VIDEO_DEVS="$VIDEO_DEVS --device=/dev/video1"
 [ -e /dev/video2 ] && VIDEO_DEVS="$VIDEO_DEVS --device=/dev/video2"
+[ -e /dev/video3 ] && VIDEO_DEVS="$VIDEO_DEVS --device=/dev/video3"
+[ -e /dev/video4 ] && VIDEO_DEVS="$VIDEO_DEVS --device=/dev/video4"
+[ -e /dev/video5 ] && VIDEO_DEVS="$VIDEO_DEVS --device=/dev/video5"
 
 # Otherwise, create and run it
 exec docker run -it \
