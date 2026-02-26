@@ -51,7 +51,7 @@ def generate_launch_description():
 
     # Wrist RoboClaw
     wrist_speed_arg = DeclareLaunchArgument(
-        'wrist_speed', default_value='0.5',
+        'wrist_speed', default_value='0.25',
         description='Wrist speed scaling (0.0–1.0)')
     wrist_port_arg = DeclareLaunchArgument(
         'wrist_port', default_value='/dev/ttyACM0',
@@ -93,6 +93,7 @@ def generate_launch_description():
             'operating_mode': 'velocity',
             'max_velocity': LaunchConfiguration('shoulder_max_velocity'),
             'joy_axis': '1',
+            'invert_axis': 'true',
             'launch_joy': 'false',
         }.items(),
     )

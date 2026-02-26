@@ -60,16 +60,22 @@ class WristTeleop(Node):
         # is held steady (which only sends one Joy message).
         self.declare_parameter("publish_hz", 20.0)
 
+        # Joy watchdog: if no /joy message is received within this many
+        # seconds the motors are stopped as a safety measure.
+        self.declare_parameter("joy_timeout", 0.5)
+
         # ── Read parameters ─────────────────────────────────────────────
         self.axis_pitch = self.get_parameter("axis_pitch").value
         self.axis_roll = self.get_parameter("axis_roll").value
         self.speed = float(self.get_parameter("speed").value)
         self.deadzone = float(self.get_parameter("deadzone").value)
         self.publish_hz = float(self.get_parameter("publish_hz").value)
+        self.joy_timeout = float(self.get_parameter("joy_timeout").value)
 
         # ── State ───────────────────────────────────────────────────────
         self._m1 = 0.0
         self._m2 = 0.0
+        self._last_joy_time: float | None = None  # monotonic seconds
 
         # ── Pub / Sub ──────────────────────────────────────────────────
         self.joy_sub = self.create_subscription(
@@ -89,6 +95,8 @@ class WristTeleop(Node):
     # ─────────────────────────────────────────────────────────────────────
     def _joy_cb(self, msg: Joy) -> None:
         """Receive joystick, compute differential mix."""
+        self._last_joy_time = self.get_clock().now().nanoseconds * 1e-9
+
         pitch_raw = (
             msg.axes[self.axis_pitch]
             if len(msg.axes) > self.axis_pitch
@@ -121,6 +129,17 @@ class WristTeleop(Node):
 
     def _publish(self) -> None:
         """Publish synthetic Joy message for simple_roboclaw."""
+        # Joy watchdog — zero motors if /joy has gone silent
+        if self._last_joy_time is not None:
+            now = self.get_clock().now().nanoseconds * 1e-9
+            if (now - self._last_joy_time) > self.joy_timeout:
+                if self._m1 != 0.0 or self._m2 != 0.0:
+                    self.get_logger().warn(
+                        f"Joy timeout ({self.joy_timeout}s) — stopping wrist motors"
+                    )
+                self._m1 = 0.0
+                self._m2 = 0.0
+
         out = Joy()
         out.header.stamp = self.get_clock().now().to_msg()
         # axes[0] → mapped to simple_roboclaw axis_left  (M1)

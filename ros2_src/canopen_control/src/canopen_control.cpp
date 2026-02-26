@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <csignal>
 #include "rclcpp/rclcpp.hpp"
+#include "rcutils/logging.h"
 #include "sensor_msgs/msg/joy.hpp"
 
 using std::placeholders::_1;
@@ -26,21 +27,25 @@ public:
     this->declare_parameter<int>("canopen_node_id", 1);
     this->declare_parameter<int>("max_velocity", 1000);
     this->declare_parameter<int>("joy_axis", 1);
+    this->declare_parameter<bool>("invert_axis", false);
     this->declare_parameter<std::string>("operating_mode", "position");  // "position" or "velocity"
     this->declare_parameter<int>("max_position", 100000);  // position step scaling in pulses
     this->declare_parameter<int>("profile_velocity", 10000);  // velocity used during position moves (pulses/s)
     this->declare_parameter<int>("profile_acceleration", 1000000);  // pulses/s²
     this->declare_parameter<int>("profile_deceleration", 1000000);  // pulses/s²
+    this->declare_parameter<bool>("debug", false);
     
     can_interface_ = this->get_parameter("can_interface").as_string();
     node_id_ = static_cast<uint8_t>(this->get_parameter("canopen_node_id").as_int());
     max_velocity_ = this->get_parameter("max_velocity").as_int();
     joy_axis_ = this->get_parameter("joy_axis").as_int();
+    invert_axis_ = this->get_parameter("invert_axis").as_bool();
     operating_mode_ = this->get_parameter("operating_mode").as_string();
     max_position_ = this->get_parameter("max_position").as_int();
     profile_velocity_ = this->get_parameter("profile_velocity").as_int();
     profile_acceleration_ = this->get_parameter("profile_acceleration").as_int();
     profile_deceleration_ = this->get_parameter("profile_deceleration").as_int();
+    debug_ = this->get_parameter("debug").as_bool();
 
     // max_position is treated as pulses-per-callback-at-full-deflection.
     // The joystick autorepeat_rate is typically 20 Hz, so at full stick the
@@ -71,6 +76,12 @@ public:
     RCLCPP_INFO(this->get_logger(), 
       "JoyToPDONode initialized on %s for node %u, mode=%s",
       can_interface_.c_str(), node_id_, operating_mode_.c_str());
+
+    if (debug_) {
+      (void)rcutils_logging_set_logger_level(
+        this->get_logger().get_name(), RCUTILS_LOG_SEVERITY_DEBUG);
+      RCLCPP_INFO(this->get_logger(), "Debug logging enabled.");
+    }
   }
 
   ~JoyToPDONode()
@@ -195,7 +206,7 @@ private:
       else if (command == 0x81) cmd_str = "Reset Application";
       else if (command == 0x82) cmd_str = "Reset Communication";
       
-      RCLCPP_INFO(this->get_logger(), "Sent NMT command to node %u: %s (0x%02X)",
+      RCLCPP_DEBUG(this->get_logger(), "Sent NMT command to node %u: %s (0x%02X)",
                   node_id_, cmd_str, command);
     }
   }
@@ -232,7 +243,7 @@ private:
     if (nbytes != sizeof(struct can_frame)) {
       RCLCPP_ERROR(this->get_logger(), "Failed to send CAN frame: %s", strerror(errno));
     } else {
-      RCLCPP_INFO(this->get_logger(), 
+      RCLCPP_DEBUG(this->get_logger(), 
         "Sent SDO write: cmd=0x%02X index=0x%04X subindex=0x%02X value=0x%08X to node %u",
         cmd_byte, index, subindex, value, node_id_);
 
@@ -354,6 +365,7 @@ private:
     }
 
     double axis = msg->axes[joy_axis_];
+    if (invert_axis_) axis = -axis;
 
     if (operating_mode_ == "position") {
       // Incremental positioning: stick deflection controls the rate at which
@@ -365,7 +377,7 @@ private:
       int32_t increment = static_cast<int32_t>(axis * static_cast<double>(position_step_));
       current_position_ += increment;
 
-      RCLCPP_INFO(this->get_logger(), "Axis %d: %.3f -> increment %d, target position %d",
+      RCLCPP_DEBUG(this->get_logger(), "Axis %d: %.3f -> increment %d, target position %d",
                   joy_axis_, axis, increment, current_position_);
 
       // Write Target Position (0x607A:00)
@@ -385,7 +397,7 @@ private:
       // Velocity mode: map axis to velocity
       int32_t velocity = static_cast<int32_t>(axis * static_cast<double>(max_velocity_));
 
-      RCLCPP_INFO(this->get_logger(), "Axis %d: %.3f -> velocity %d", joy_axis_, axis, velocity);
+      RCLCPP_DEBUG(this->get_logger(), "Axis %d: %.3f -> velocity %d", joy_axis_, axis, velocity);
 
       // Write Target Velocity (0x60FF:00)
       send_sdo_write(0x60FF, 0x00, static_cast<uint32_t>(velocity));
@@ -420,10 +432,12 @@ private:
   int position_step_ = 0;         // derived from max_position / joystick rate
   int32_t current_position_ = 0;  // running incremental target position
   int joy_axis_ = 1;
+  bool invert_axis_ = false;
   std::string operating_mode_ = "position";  // "position" or "velocity"
   int profile_velocity_ = 10000;    // pulses/s  (velocity during position moves, or initial target in velocity mode)
   int profile_acceleration_ = 1000000;  // pulses/s²
   int profile_deceleration_ = 1000000;  // pulses/s²
+  bool debug_ = false;
 };
 
 // Global weak_ptr so the signal handler can trigger shutdown without preventing destruction

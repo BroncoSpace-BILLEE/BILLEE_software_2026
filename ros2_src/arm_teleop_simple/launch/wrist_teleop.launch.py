@@ -29,6 +29,11 @@ def generate_launch_description():
         default_value='0.5',
         description='Wrist speed scaling factor (0.0–1.0)')
 
+    joy_timeout_arg = DeclareLaunchArgument(
+        'joy_timeout',
+        default_value='0.5',
+        description='Seconds without a /joy message before motors are stopped')
+
     port_arg = DeclareLaunchArgument(
         'port',
         default_value='/dev/ttyACM0',
@@ -52,6 +57,7 @@ def generate_launch_description():
             'speed': LaunchConfiguration('speed'),
             'deadzone': 0.05,
             'publish_hz': 20.0,
+            'joy_timeout': LaunchConfiguration('joy_timeout'),
         }],
     )
 
@@ -76,6 +82,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         speed_arg,
+        joy_timeout_arg,
         port_arg,
         address_arg,
         wrist_teleop_node,
