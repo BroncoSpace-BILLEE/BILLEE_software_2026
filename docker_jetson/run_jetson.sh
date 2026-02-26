@@ -53,7 +53,6 @@ exec docker run -it \
   --cap-add=NET_ADMIN \
   $DEV_ARG \
   --runtime nvidia \
-  #-e "DISPLAY=${DISPLAY}" \
   -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
   -v /tmp/argus_socket:/tmp/argus_socket \
   "${IMAGE}" \
