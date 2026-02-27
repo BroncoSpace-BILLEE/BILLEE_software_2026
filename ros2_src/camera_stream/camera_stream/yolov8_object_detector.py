@@ -2,6 +2,7 @@
 import os
 import rclpy
 from rclpy.node import Node
+from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 from sensor_msgs.msg import CompressedImage
 from std_msgs.msg import Bool
 import cv2
@@ -24,7 +25,14 @@ class YOLOv8ObjectDetector(Node):
         self.declare_parameter("model_path", "src/camera_stream/models/yolov8s.pt")
         self.declare_parameter("model_size", "s")
         self.declare_parameter("enable_gpu", True)
-        self.declare_parameter("target_classes", [])
+        self.declare_parameter(
+            "target_classes",
+            [],
+            ParameterDescriptor(
+                type=ParameterType.PARAMETER_STRING_ARRAY,
+                description="List of target class names to detect"
+            )
+        )
 
         self.input_topic = self.get_parameter("input_topic").value
         self.detection_topic = self.get_parameter("detection_topic").value

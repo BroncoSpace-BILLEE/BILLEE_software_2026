@@ -17,7 +17,7 @@ def generate_launch_description():
                 output="screen",
                 parameters=[
                     {
-                        "input_topic": "/camera/video/compressed",
+                        "input_topic": "/cam1/video",
                         "detection_topic": "/object_detected",
                         "publish_hz": 10.0,
                         "confidence_threshold": 0.5,
