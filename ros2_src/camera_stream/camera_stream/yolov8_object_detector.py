@@ -2,6 +2,7 @@
 import os
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 from foxglove_msgs.msg import CompressedVideo
 from std_msgs.msg import Bool
@@ -54,7 +55,14 @@ class YOLOv8ObjectDetector(Node):
 
         self.pub = self.create_publisher(Bool, self.detection_topic, 10)
         self.sub = self.create_subscription(
-            CompressedVideo, self.input_topic, self.on_video, 10
+            CompressedVideo, 
+            self.input_topic, 
+            self.on_video,
+            qos_profile=QoSProfile(
+                reliability=ReliabilityPolicy.BEST_EFFORT,
+                history=HistoryPolicy.KEEP_LAST,
+                depth=1
+            )
         )
 
         self.get_logger().info(
