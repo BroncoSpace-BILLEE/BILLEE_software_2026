@@ -78,7 +78,7 @@ class SimpleAutonomy(Node):
                     self._set_state(State.AVOID_TURN)
                     self._publish_twist(0.0, 0.0)
                     return
-                self._publish_twist(self.forward_speed, 0.0)
+                self._publish_twist(-self.forward_speed, 0.0)
                 return
 
             case State.AVOID_TURN:
@@ -94,7 +94,7 @@ class SimpleAutonomy(Node):
                     self._set_state(State.RETURN_TURN)
                     self._publish_twist(0.0, 0.0)
                     return
-                self._publish_twist(self.avoid_forward_speed, 0.0)
+                self._publish_twist(-self.avoid_forward_speed, 0.0)
                 return
 
             case State.RETURN_TURN:
@@ -121,7 +121,7 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
-        node.pub.publish(Twist())
+        node.pub.publish(Twist(0,0,0,0,0,0))  # Stop the robot before shutting down
         node.destroy_node()
         rclpy.shutdown()
 
