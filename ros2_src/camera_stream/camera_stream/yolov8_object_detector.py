@@ -3,7 +3,7 @@ import os
 import rclpy
 from rclpy.node import Node
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType
-from sensor_msgs.msg import CompressedImage
+from foxglove_msgs.msg import CompressedVideo
 from std_msgs.msg import Bool
 import cv2
 import numpy as np
@@ -25,14 +25,7 @@ class YOLOv8ObjectDetector(Node):
         self.declare_parameter("model_path", "src/camera_stream/models/yolov8s.pt")
         self.declare_parameter("model_size", "s")
         self.declare_parameter("enable_gpu", True)
-        self.declare_parameter(
-            "target_classes",
-            [],
-            ParameterDescriptor(
-                type=ParameterType.PARAMETER_STRING_ARRAY,
-                description="List of target class names to detect"
-            )
-        )
+        self.declare_parameter("target_classes", [""])
 
         self.input_topic = self.get_parameter("input_topic").value
         self.detection_topic = self.get_parameter("detection_topic").value
@@ -52,14 +45,8 @@ class YOLOv8ObjectDetector(Node):
         self.get_logger().info("Loading YOLO model...")
         if self.model_path:
             model_file = self.model_path
-            if not os.path.isabs(model_file):
-                package_share = self.get_package_share_directory('camera_stream')
-                model_file = os.path.join(package_share, 'models', self.model_path)
-            self.model = YOLO(model_file)
-            self.get_logger().info(f"Loaded custom model from {model_file}")
-        else:
-            self.get_logger().info(f"Loading YOLOv8{self.model_size} model...")
-            self.model = YOLO(f"yolov8{self.model_size}.pt")
+            self.get_logger().info(f"Loading YOLOv8{self.model_size} model from {self.model_path}...")
+            self.model = YOLO(self.model_path)
         
         if self.enable_gpu:
             self.model.to("cuda")
@@ -67,15 +54,17 @@ class YOLOv8ObjectDetector(Node):
 
         self.pub = self.create_publisher(Bool, self.detection_topic, 10)
         self.sub = self.create_subscription(
-            CompressedImage, self.input_topic, self.on_image, 10
+            CompressedVideo, self.input_topic, self.on_video, 10
         )
 
         self.get_logger().info(
             f"Subscribing to {self.input_topic}, publishing to {self.detection_topic}"
         )
 
-    def on_image(self, msg: CompressedImage):
+    def on_video(self, msg: CompressedVideo):
         try:
+            self.get_logger().debug("Received video frame, running detection...")
+
             frame = cv2.imdecode(
                 np.frombuffer(msg.data, np.uint8), cv2.IMREAD_COLOR
             )
@@ -85,12 +74,16 @@ class YOLOv8ObjectDetector(Node):
             results = self.model(frame, conf=self.confidence_threshold, verbose=False)
 
             object_detected = False
+            
+            # Filter out empty strings from target_classes
+            valid_classes = [cls for cls in self.target_classes if cls.strip()]
+            
             for box in results[0].boxes:
                 class_id = int(box.cls[0])
                 class_name = self.model.names[class_id]
                 
-                if self.target_classes:
-                    if class_name in self.target_classes:
+                if valid_classes:
+                    if class_name in valid_classes:
                         object_detected = True
                         break
                 else:
