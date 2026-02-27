@@ -26,7 +26,7 @@ def generate_launch_description():
                         "enable_gpu": False,
                         "target_classes": [
                             'person',
-                            'laptop'
+                            'chair'
                         ],
                     }
                 ],
