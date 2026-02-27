@@ -4,7 +4,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType
-from foxglove_msgs.msg import CompressedVideo
+from sensor_msgs.msg import CompressedImage
 from std_msgs.msg import Bool
 import cv2
 import numpy as np
@@ -19,7 +19,7 @@ class YOLOv8ObjectDetector(Node):
     def __init__(self):
         super().__init__("yolov8_object_detector")
 
-        self.declare_parameter("input_topic", "/camera/video/compressed")
+        self.declare_parameter("input_topic", "/camera/video/image")
         self.declare_parameter("detection_topic", "/object_detected")
         self.declare_parameter("publish_hz", 10.0)
         self.declare_parameter("confidence_threshold", 0.5)
@@ -55,9 +55,9 @@ class YOLOv8ObjectDetector(Node):
 
         self.pub = self.create_publisher(Bool, self.detection_topic, 10)
         self.sub = self.create_subscription(
-            CompressedVideo, 
+            CompressedImage, 
             self.input_topic, 
-            self.on_video,
+            self.on_image,
             qos_profile=QoSProfile(
                 reliability=ReliabilityPolicy.BEST_EFFORT,
                 history=HistoryPolicy.KEEP_LAST,
@@ -69,7 +69,7 @@ class YOLOv8ObjectDetector(Node):
             f"Subscribing to {self.input_topic}, publishing to {self.detection_topic}"
         )
 
-    def on_video(self, msg: CompressedVideo):
+    def on_image(self, msg: CompressedImage):
         try:
             self.get_logger().debug("Received video frame, running detection...")
 

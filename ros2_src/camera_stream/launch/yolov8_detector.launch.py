@@ -17,13 +17,13 @@ def generate_launch_description():
                 output="screen",
                 parameters=[
                     {
-                        "input_topic": "/cam1/video",
+                        "input_topic": "/cam0/video/image",
                         "detection_topic": "/object_detected",
                         "publish_hz": 10.0,
                         "confidence_threshold": 0.5,
                         "model_path": "src/models/yolov8s.pt",
                         "model_size": "s",
-                        "enable_gpu": True,
+                        "enable_gpu": False,
                         "target_classes": [
                             'person',
                             'laptop'

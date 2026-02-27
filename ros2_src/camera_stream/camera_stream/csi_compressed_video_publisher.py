@@ -23,6 +23,7 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 
 from foxglove_msgs.msg import CompressedVideo
+from sensor_msgs.msg import CompressedImage
 
 import gi  # type: ignore
 gi.require_version("Gst", "1.0")
@@ -78,6 +79,7 @@ class CSICompressedVideoPublisher(Node):
             durability=DurabilityPolicy.VOLATILE,
         )
         self.pub = self.create_publisher(CompressedVideo, self.topic, qos)
+        self.pub_image = self.create_publisher(CompressedImage, self.topic + "/image", qos)
 
         # ---- GStreamer ----
         Gst.init(None)
@@ -195,9 +197,16 @@ class CSICompressedVideoPublisher(Node):
             msg.timestamp.nanosec = int(t.nanoseconds % 1_000_000_000)
         else:
             msg.timestamp = self.get_clock().now().to_msg()
-            self.pub.publish(msg)
 
         self.pub.publish(msg)
+        
+        # Also publish as CompressedImage
+        img_msg = CompressedImage()
+        img_msg.format = "jpeg"
+        img_msg.data = payload
+        img_msg.header.frame_id = self.frame_id
+        img_msg.header.stamp = msg.timestamp
+        self.pub_image.publish(img_msg)
         return Gst.FlowReturn.OK
 
     def destroy_node(self) -> bool:
