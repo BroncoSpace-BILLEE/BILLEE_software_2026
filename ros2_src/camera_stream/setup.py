@@ -12,6 +12,7 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name + '/launch', glob('launch/*.launch.py')),
+        ('share/' + package_name + '/models', glob('models/*')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -27,6 +28,7 @@ setup(
     entry_points={
         'console_scripts': [
             'csi_compressed_video_pub = camera_stream.csi_compressed_video_publisher:main',
+            'yolov8_detector = camera_stream.yolov8_object_detector:main',
         ],
     },
 )

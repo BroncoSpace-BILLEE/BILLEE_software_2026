@@ -7,6 +7,7 @@ from rclpy.node import Node
 from sensor_msgs.msg import Joy
 from std_msgs.msg import Float32
 from .roboclaw_3 import Roboclaw
+import time
 
 ROBOCLAW_MAX_SPEED = 127
 
@@ -37,19 +38,26 @@ class RoboClawJoy(Node):
         self.roboclaw_right_encoder_topic = self.get_parameter('roboclaw_right_encoder_topic').value
         
         # Open serial port
-        self.roboclaw = Roboclaw(comport=port, rate=baudrate)
+        self.roboclaw = Roboclaw(comport=port, rate=baudrate, retries=1)
         self.connected = self.roboclaw.Open()
         if self.connected:
-            self.get_logger().info(f'Connected to RoboClaw on {port}')
+            self.get_logger().info(f'Connected to RoboClaw on {port} at {baudrate} baud')
+            time.sleep(0.2)  # Give RoboClaw time to respond
+            
+            # Try to reset encoders with timeout - skip if RoboClaw not responding
             try:
-                self.roboclaw.ResetEncoders(self.address)
+                result = self.roboclaw.ResetEncoders(self.address)
+                if result:
+                    self.get_logger().info(f'Successfully reset encoders on address {self.address}')
+                else:
+                    self.get_logger().warn(f'ResetEncoders failed - RoboClaw address {self.address} not responding. Check:')
+                    self.get_logger().warn(f'  1. Is RoboClaw powered on?')
+                    self.get_logger().warn(f'  2. Is the address set correctly in BasicMicro Studio?')
+                    self.get_logger().warn(f'  3. Is serial mode set correctly (Packet vs Simple)?')
             except Exception as e:
                 self.get_logger().error(f'Failed to reset encoders: {e}')
-
-            self.get_logger().info('Successfully reset encoders')
-
         else:
-            self.get_logger().error(f'Failed to connect to RoboClaw:')
+            self.get_logger().error(f'Failed to open serial port {port}')
 
         
         # Subscribe to joystick
@@ -62,43 +70,78 @@ class RoboClawJoy(Node):
 
         if self.connected:
             self.get_logger().info('Simple RoboClaw controller ready!')
+        
+        # Track command failures
+        self.command_failures = 0
 
         
     
     def joy_callback(self, msg: Joy):
         """Convert joystick to motor speeds and send to RoboClaw"""
         
+        if not self.connected:
+            return
+        
         # Get joystick values [-1.0, 1.0]
-        left_pctg = msg.axes[self.axis_left] if len(msg.axes) > 2 else 0.0
-        right_pctg = msg.axes[self.axis_right] if len(msg.axes) > 2 else 0.0
+        left_pctg = msg.axes[self.axis_left] if len(msg.axes) > self.axis_left else 0.0
+        right_pctg = msg.axes[self.axis_right] if len(msg.axes) > self.axis_right else 0.0
+        
+        # Apply deadzone to filter noise
+        DEADZONE = 0.05
+        if abs(left_pctg) < DEADZONE:
+            left_pctg = 0.0
+        if abs(right_pctg) < DEADZONE:
+            right_pctg = 0.0
         
         # Convert to output range: [-127, 127]
         left_speed = int(left_pctg * ROBOCLAW_MAX_SPEED)
         right_speed = int(right_pctg * ROBOCLAW_MAX_SPEED)
         
-
-        self.get_logger().info(f'left: {left_pctg}% Right: {right_pctg}% -> Left: {left_speed}% Right: {right_speed}%')
+        # Only log if speeds changed to reduce spam
+        if not hasattr(self, '_last_speeds') or (left_speed, right_speed) != self._last_speeds:
+            self.get_logger().info(f'Joystick -> Left: {left_speed} Right: {right_speed}')
+            self._last_speeds = (left_speed, right_speed)
         
-        #self.drive_motors(left_speed, right_speed)
+        self.drive_motors(left_speed, right_speed)
         
     
     def drive_motors(self, left_speed:float, right_speed:float):
         """
-        Send percentage speed commands to RoboClaw motors
-        Speed: [-127, 127]
-
+        Send duty cycle commands to RoboClaw motors
+        Speed: [-127, 127] where negative is backward, positive is forward
         """
-        self.get_logger().info(f'Driving Motors with the following speeds: Left: {left_speed}% Right: {right_speed}%')
+        if not self.connected:
+            return
+        
+        try:
+            result_m1 = False
+            result_m2 = False
+            
+            if left_speed > 0:
+                result_m1 = self.roboclaw.ForwardM1(self.address, int(left_speed))
+            elif left_speed < 0:
+                result_m1 = self.roboclaw.BackwardM1(self.address, int(abs(left_speed)))
+            else:
+                result_m1 = self.roboclaw.ForwardM1(self.address, 0)
 
-        if left_speed > 0:
-            self.roboclaw.ForwardM1(self.address, left_speed)
-        else:
-            self.roboclaw.BackwardM1(self.address, left_speed)
-
-        if right_speed > 0:
-            self.roboclaw.ForwardM1(self.address, right_speed)
-        else:
-            self.roboclaw.BackwardM1(self.address, right_speed)
+            if right_speed > 0:
+                result_m2 = self.roboclaw.ForwardM2(self.address, int(right_speed))
+            elif right_speed < 0:
+                result_m2 = self.roboclaw.BackwardM2(self.address, int(abs(right_speed)))
+            else:
+                result_m2 = self.roboclaw.ForwardM2(self.address, 0)
+            
+            if not result_m1 or not result_m2:
+                self.command_failures += 1
+                if self.command_failures % 10 == 0:  # Log every 10 failures
+                    self.get_logger().warn(f'Motor commands failing: M1={result_m1}, M2={result_m2} ({self.command_failures} failures)')
+            else:
+                if self.command_failures > 0:
+                    self.get_logger().info(f'Motor commands responding again (had {self.command_failures} failures)')
+                    self.command_failures = 0
+                    
+        except Exception as e:
+            self.get_logger().error(f'Motor control error: {e}')
 
     
     
@@ -114,9 +157,21 @@ class RoboClawJoy(Node):
 
     def on_timer(self):
         if self.connected:
-            self.left_encoder_pub.publish(self.roboclaw.ReadEncM1(self.address))
-            self.right_encoder_pub.publish(self.roboclaw.ReadEncM2(self.address))
-        pass
+            try:
+                left_enc = self.roboclaw.ReadEncM1(self.address)
+                right_enc = self.roboclaw.ReadEncM2(self.address)
+                
+                if left_enc[0]:  # Check status byte
+                    left_msg = Float32()
+                    left_msg.data = float(left_enc[1])
+                    self.left_encoder_pub.publish(left_msg)
+                
+                if right_enc[0]:  # Check status byte
+                    right_msg = Float32()
+                    right_msg.data = float(right_enc[1])
+                    self.right_encoder_pub.publish(right_msg)
+            except Exception as e:
+                self.get_logger().debug(f'Encoder read error: {e}')
 
 def main(args=None):
     rclpy.init(args=args)

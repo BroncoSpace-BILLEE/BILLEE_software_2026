@@ -25,6 +25,8 @@ setup(
     entry_points={
         'console_scripts': [
             'manual_control = chassis_teleop.manual_control:main',
+            'zed_object_distance = chassis_teleop.zed_object_distance:main',
+            'simple_autonomy = chassis_teleop.simple_autonomy:main',
         ],
     },
 )
