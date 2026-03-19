@@ -23,6 +23,7 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 
 from foxglove_msgs.msg import CompressedVideo
+from sensor_msgs.msg import CompressedImage
 
 import gi  # type: ignore
 gi.require_version("Gst", "1.0")
@@ -78,12 +79,14 @@ class CSICompressedVideoPublisher(Node):
             durability=DurabilityPolicy.VOLATILE,
         )
         self.pub = self.create_publisher(CompressedVideo, self.topic, qos)
+        self.pub_image = self.create_publisher(CompressedImage, self.topic + "/image", qos)
 
         # ---- GStreamer ----
         Gst.init(None)
 
         self._pipeline: Optional[Gst.Pipeline] = None
         self._appsink: Optional[Gst.Element] = None
+        self._appsink_image: Optional[Gst.Element] = None
 
         # GLib loop for appsink callbacks
         self._glib_loop = GLib.MainLoop()
@@ -137,8 +140,25 @@ class CSICompressedVideoPublisher(Node):
                 "video/x-h265,stream-format=byte-stream,alignment=au ! "
             )
 
-        sink = "appsink name=vsink emit-signals=true sync=false max-buffers=1 drop=true"
-        return src + enc + sink
+        video_sink = "appsink name=vsink emit-signals=true sync=false max-buffers=1 drop=true"
+        image_sink = "appsink name=jsink emit-signals=true sync=false max-buffers=1 drop=true"
+
+        jpeg_branch = (
+            "queue ! "
+            "nvvidconv ! video/x-raw,format=I420 ! "
+            "nvjpegenc ! image/jpeg ! "
+        )
+
+        return (
+            src
+            + "tee name=t "
+            + "t. ! queue ! "
+            + enc
+            + video_sink
+            + " t. ! "
+            + jpeg_branch
+            + image_sink
+        )
 
     def _build_and_start_pipeline(self) -> None:
         pipe_str = self._pipeline_string()
@@ -152,10 +172,16 @@ class CSICompressedVideoPublisher(Node):
         if appsink is None:
             raise RuntimeError("Failed to find appsink 'vsink'")
 
-        appsink.connect("new-sample", self._on_new_sample)
+        appsink_image = pipeline.get_by_name("jsink")
+        if appsink_image is None:
+            raise RuntimeError("Failed to find appsink 'jsink'")
+
+        appsink.connect("new-sample", self._on_new_sample_video)
+        appsink_image.connect("new-sample", self._on_new_sample_image)
 
         self._pipeline = pipeline
         self._appsink = appsink
+        self._appsink_image = appsink_image
         self._ros_anchor_ns = self.get_clock().now().nanoseconds
 
         ret = self._pipeline.set_state(Gst.State.PLAYING)
@@ -166,7 +192,7 @@ class CSICompressedVideoPublisher(Node):
         anchor = self._ros_anchor_ns if self._ros_anchor_ns is not None else self.get_clock().now().nanoseconds
         return rclpy.time.Time(nanoseconds=anchor + int(pts_ns))
 
-    def _on_new_sample(self, sink: Gst.Element) -> Gst.FlowReturn:
+    def _on_new_sample_video(self, sink: Gst.Element) -> Gst.FlowReturn:
         sample = sink.emit("pull-sample")
         if sample is None:
             return Gst.FlowReturn.ERROR
@@ -195,9 +221,41 @@ class CSICompressedVideoPublisher(Node):
             msg.timestamp.nanosec = int(t.nanoseconds % 1_000_000_000)
         else:
             msg.timestamp = self.get_clock().now().to_msg()
-            self.pub.publish(msg)
 
         self.pub.publish(msg)
+        return Gst.FlowReturn.OK
+
+    def _on_new_sample_image(self, sink: Gst.Element) -> Gst.FlowReturn:
+        sample = sink.emit("pull-sample")
+        if sample is None:
+            return Gst.FlowReturn.ERROR
+
+        buf: Gst.Buffer = sample.get_buffer()
+        if buf is None:
+            return Gst.FlowReturn.ERROR
+
+        ok, mapinfo = buf.map(Gst.MapFlags.READ)
+        if not ok:
+            return Gst.FlowReturn.ERROR
+
+        try:
+            payload = bytes(mapinfo.data)
+        finally:
+            buf.unmap(mapinfo)
+
+        img_msg = CompressedImage()
+        img_msg.format = "jpeg"
+        img_msg.data = payload
+        img_msg.header.frame_id = self.frame_id
+
+        if self.use_pts and buf.pts != Gst.CLOCK_TIME_NONE:
+            t = self._stamp_from_pts(int(buf.pts))
+            img_msg.header.stamp.sec = int(t.nanoseconds // 1_000_000_000)
+            img_msg.header.stamp.nanosec = int(t.nanoseconds % 1_000_000_000)
+        else:
+            img_msg.header.stamp = self.get_clock().now().to_msg()
+
+        self.pub_image.publish(img_msg)
         return Gst.FlowReturn.OK
 
     def destroy_node(self) -> bool:

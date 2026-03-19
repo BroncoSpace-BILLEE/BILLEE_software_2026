@@ -36,6 +36,7 @@ RUN if [ "$(curl -L -I "${ZED_SDK_URL}" -o /dev/null -s -w '%{http_code}\n' | he
     fi
 
 
+# Install ROS2
 
 # Set and Check Locale
 RUN apt-get update || true && \
@@ -112,37 +113,11 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 # Install the ZED SDK
 RUN echo "CUDA Version $CUDA_VERSION" > /usr/local/cuda/version.txt
 
-# add PPA for lely canopen
-RUN  add-apt-repository ppa:lely/ppa
-
-RUN groupadd --gid ${USER_GID} ${USERNAME} \
-    && useradd --uid ${USER_UID} --gid ${USER_GID} -m -s /bin/bash ${USERNAME} \
-    && mkdir -p /home/${USERNAME}/ros2_ws/src \
-    && chown -R ${USERNAME}:${USERNAME} /home/${USERNAME}/ros2_ws
-
-RUN apt-get update && apt-get install -y sudo \
-    && usermod -aG sudo ros_user \
-    && echo "ros_user ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ros_user \
-    && chmod 0440 /etc/sudoers.d/ros_user
-
 #create a virtual environment for the ZED SDK and ROS2 packages
 RUN apt-get update && apt-get install --no-install-recommends -y \
 python3-opencv \ 
 python3.10-venv \
 && rm -rf /var/lib/apt/lists/*
-
-RUN apt-get update && apt-get install --no-install-recommends -y \
-liblely-coapp-dev \
-liblely-co-tools \ 
-python3-dcf-tools \
-python3-serial \
-&& rm -rf /var/lib/apt/lists/*
-
-RUN apt-get update && apt-get install --no-install-recommends -y \ 
-can-utils \
-usbutils \
-kmod \
-&& rm -rf /var/lib/apt/lists/* 
 
 # Setup the ZED SDK
 RUN apt-get update -y || true && \
@@ -167,11 +142,6 @@ WORKDIR /home/ros_user/ros2_ws/
 
 COPY ../ros2_src ./src
 
-
-#RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.bash && \
-  #apt-get update -y || true && rosdep update && \
-  #rosdep install --from-paths src --ignore-src -r -y" && \ 
-  #rm -rf /var/lib/apt/lists/*
 
 
 COPY .devcontainer/humble_base/entrypoint.humble.sh /entrypoint.humble.sh

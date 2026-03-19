@@ -21,10 +21,17 @@ def generate_launch_description():
         description='Serial port for RoboClaw'
     )
     
+    address_arg = DeclareLaunchArgument(
+        'address',
+        default_value='128',
+        description='RoboClaw serial address'
+    )
+    
     
     return LaunchDescription([
         launch_joy_arg,
         port_arg,
+        address_arg,
         Node(
             package='joy_linux',
             executable='joy_linux_node',
@@ -43,8 +50,8 @@ def generate_launch_description():
             name='simple_roboclaw',
             output='screen',
             parameters=[{
-                'port': LaunchConfiguration('port'), #TODO: configure in tuning software
-                'address': 128,
+                'port': LaunchConfiguration('port'),
+                'address': LaunchConfiguration('address'),
                 'axis_left': 1,
                 'axis_right': 3,
             }]
