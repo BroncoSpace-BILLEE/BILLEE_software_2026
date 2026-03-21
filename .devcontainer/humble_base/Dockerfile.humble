@@ -80,7 +80,7 @@ RUN apt-get update && \
     python3-vcstool \
     ros-${ROS2_DIST}-controller-manager \
     ros-${ROS2_DIST}-desktop \
-    ros-${ROS2_DIST}-foxglove-bridge \
+    #ros-${ROS2_DIST}-foxglove-bridge \
     ros-${ROS2_DIST}-gz-ros2-control \
     ros-${ROS2_DIST}-joint-state-publisher-gui \
     ros-${ROS2_DIST}-joy-linux \
