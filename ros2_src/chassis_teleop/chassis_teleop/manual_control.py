@@ -23,6 +23,9 @@ class manual_control(Node):
         self.declare_parameter("max_linear_speed", 0.4)   # m/s
         self.declare_parameter("max_angular_speed", 1.2)  # rad/s
 
+        #control method
+        self.declare_parameter("control_method", "joystick")  # "joystick" or "triggers"
+
         # Publish behavior
         self.declare_parameter("publish_hz", 20.0)
         self.declare_parameter("zero_when_idle", True)   # publish 0 when no buttons pressed
@@ -34,6 +37,8 @@ class manual_control(Node):
         self.max_linear_speed = float(self.get_parameter("max_linear_speed").value)
         self.max_angular_speed = float(self.get_parameter("max_angular_speed").value)
 
+        self.control_method = self.get_parameter("control_method").value
+
         self.publish_hz = float(self.get_parameter("publish_hz").value)
         self.zero_when_idle = bool(self.get_parameter("zero_when_idle").value)
         self.joy_timeout_sec = float(self.get_parameter("joy_timeout_sec").value)
@@ -43,6 +48,7 @@ class manual_control(Node):
 
         self.last_joy_time = None
         self.latest_buttons = []
+        self.calibrated = False
 
         period = 1.0 / max(self.publish_hz, 1e-3)
         self.timer = self.create_timer(period, self.on_timer)
@@ -55,6 +61,9 @@ class manual_control(Node):
     def joy_cb(self, msg: Joy):
         self.latest_buttons = list(msg.buttons)
         self.axes = list(msg.axes)
+        # Ensure axes has enough elements to prevent index errors
+        while len(self.axes) < 8:
+            self.axes.append(0.0)
         self.last_joy_time = self.get_clock().now()
 
     def _btn(self, idx: int) -> bool:
@@ -81,17 +90,41 @@ class manual_control(Node):
 
         AXIS_LX = 0          # left stick left/right
         AXIS_LY = 1          # left stick up/down (often inverted)
+        AXIS_RT = 5          # right trigger 1 to -1 unpressed-pressed (starts at zero initially, goes to 1 once moved)
+        AXIS_LT = 2          # left trigger 
         DEADZONE = 0.10
         MAX_LIN = self.max_linear_speed    # m/s
         MAX_ANG = self.max_angular_speed   # rad/s
 
-
+        #joystick control method
         lx = self.axes[AXIS_LX]
         ly = self.axes[AXIS_LY]
 
+        #trigger control method
+        rt = self.axes[AXIS_RT]
+        lt = self.axes[AXIS_LT]
+
+        # Calibration: detect when both triggers are at max (for trigger initialization)
+        # Use threshold instead of exact equality for robustness
+        if rt > 0.95 and lt > 0.95:
+            self.calibrated = True
+        
+        forward = 0.0
+        turn = 0.0
+        
         # Invert Y so pushing stick up -> positive forward velocity
-        forward = -ly
-        turn = lx
+        if self.control_method == "joystick":
+            forward = -ly
+            turn = lx
+        elif self.control_method == "triggers":
+            # For triggers: axis ranges from 1.0 (unpressed) to -1.0 (fully pressed)
+            # Map to [0..1] press amount
+            rt_press = max(0.0, min(1.0, (1.0 - rt) / 2.0))
+            lt_press = max(0.0, min(1.0, (1.0 - lt) / 2.0))
+
+            # Forward when both are pressed; turning from imbalance (mixing enabled)
+            forward = min(rt_press, lt_press)
+            turn = lt_press - rt_press
 
         #forward = apply_deadzone(forward, DEADZONE)
         #turn = apply_deadzone(turn, DEADZONE)
